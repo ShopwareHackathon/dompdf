@@ -87,7 +87,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 	/**
 	 * Sets the name of the template that shall be rendered. If the optional
 	 * 'path' parameter is set, it is added to the template manager's
-	 * templated directories.
+	 * template directories.
 	 *
 	 * @param string $name
 	 * @param string|null $path
