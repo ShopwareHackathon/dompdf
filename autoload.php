@@ -38,4 +38,7 @@ $loader = require __DIR__ . '/vendor/autoload.php';
 
 AnnotationRegistry::registerLoader(array($loader, 'loadClass'));
 
+// Load domPDF
+require __DIR__ . '/vendor/dompdf/dompdf/src/autoload.inc.php';
+
 return $loader;
