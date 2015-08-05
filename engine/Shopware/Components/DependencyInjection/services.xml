@@ -401,9 +401,11 @@
             <tag name="shopware.event_subscriber" />
         </service>
 
-
         <service id="config_writer" class="Shopware\Components\ConfigWriter">
             <argument type="service" id="dbal_connection" />
+        </service>
+
+        <service id="Document" class="Shopware\Components\Document\Document">
         </service>
 
     </services>
