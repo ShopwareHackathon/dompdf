@@ -18,9 +18,14 @@ class Base extends Enlight_Class implements Enlight_Hook
 
 	public function __construct()
 	{
+		// $dompdf = new ...
 	}
 
-	public function setTemplate($path, $name)
+	public function setPaper($size, $orientation = 'portrait')
+	{
+	}
+
+	public function setTemplate($name, $path = null)
 	{
 	}
 
@@ -28,9 +33,14 @@ class Base extends Enlight_Class implements Enlight_Hook
 	{
 	}
 
-	public function render()
+	public function generateHTML()
 	{
 		// $dompdf = new Dompdf();
+	}
+
+	public function renderPDF()
+	{
+		// if... : $this->generateHTML();
 	}
 
 }
