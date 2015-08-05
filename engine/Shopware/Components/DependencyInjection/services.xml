@@ -406,10 +406,7 @@
             <argument type="service" id="dbal_connection" />
         </service>
 
-        <service id="document" class="Shopware\Components\Document\Base">
-        </service>
-
-        <service id="document.order" class="Shopware\Components\Document\Order">
+        <service id="document_factory" class="Shopware\Components\Document\Factory">
         </service>
 
     </services>

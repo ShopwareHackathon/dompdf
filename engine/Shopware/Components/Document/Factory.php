@@ -9,11 +9,19 @@ namespace Shopware\Components\Document;
  * @package   Shopware\Components\Document
  * @copyright Copyright (c) shopware AG (http://www.shopware.de)
  */
-class Order extends Base
+class Factory
 {
 
-	public function __construct()
+	public function get($type)
 	{
+		switch ($type) {
+			case 'base':
+				return new Base();
+			case 'order':
+				return new Order();
+			default:
+				throw Exception();
+		}
 	}
 
 }

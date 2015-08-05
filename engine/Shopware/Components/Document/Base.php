@@ -3,7 +3,8 @@
 namespace Shopware\Components\Document;
 
 use Enlight_Class,
-	Enlight_Hook;
+	Enlight_Hook,
+	Dompdf\Dompdf;
 
 /**
  * TODO
@@ -17,7 +18,19 @@ class Base extends Enlight_Class implements Enlight_Hook
 
 	public function __construct()
 	{
-		die('BASE');
+	}
+
+	public function setTemplate($path, $name)
+	{
+	}
+
+	public function setTemplateData($data)
+	{
+	}
+
+	public function render()
+	{
+		// $dompdf = new Dompdf();
 	}
 
 }
