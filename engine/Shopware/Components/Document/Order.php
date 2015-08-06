@@ -430,6 +430,24 @@ class Order extends Base
 	}
 
 	/**
+	 * Tries to find a translation of the content value with the given name
+	 * in the language of the order.
+	 *
+	 * @param string $name
+	 * @return string|null
+	 */
+	private function translateContentValue($name)
+	{
+		$documentTypeId = $this->documentType->getId();
+		$translation = $this->translator->read($this->order->getLanguageSubShop()->getId(), 'documents');
+		if (isset($translation[$documentTypeId]) && isset($translation[$documentTypeId][$name . '_Value'])) {
+			return $translation[$documentTypeId][$name . '_Value'];
+		}
+
+		return null;
+	}
+
+	/**
 	 * Looks up the 'type' in the translations using the language IDs of the shop
 	 * in which the order was placed.
 	 *
