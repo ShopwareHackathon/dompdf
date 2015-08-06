@@ -3,7 +3,7 @@
 namespace Shopware\Components\Document;
 
 use Shopware\Models\Dispatch\Dispatch;
-use Shopware\Models\Document\Document;
+use Shopware\Models\Order\Document\Type as DocumentType;
 use Shopware\Models\Order\Document\Document as OrderDocumentModel;
 use Shopware\Models\Order\Order as OrderModel;
 use Shopware\Models\Payment\Payment;
@@ -24,7 +24,7 @@ class Order extends Base
 	private $data = [];
 
 	/**
-	 * @var Document
+	 * @var DocumentType
 	 */
 	private $documentType;
 
@@ -38,14 +38,10 @@ class Order extends Base
 	 */
 	private $hash;
 
-	public function __construct()
-	{
-	}
-
 	/**
-	 * @param Document $type
+	 * @param DocumentType $type
 	 */
-	public function setDocumentType(Document $type)
+	public function setDocumentType(DocumentType $type)
 	{
 		$this->documentType = $type;
 
@@ -60,10 +56,10 @@ class Order extends Base
 	public function setOrder(OrderModel $order)
 	{
 		$this->order = $order;
-		$this->__set('customerNumber', $this->order->getCustomer()->getBilling()->getNumber());
-		$this->__set('orderNumber', $this->order->getNumber());
-		$this->__set('dispatchMethod', $this->order->getDispatch());
-		$this->__set('paymentMethod', $this->order->getPayment());
+		$this->setCustomerNumber($this->order->getCustomer()->getBilling()->getNumber());
+		$this->setOrderNumber($this->order->getNumber());
+		$this->setDispatchMethod($this->order->getDispatch());
+		$this->setPaymentMethod($this->order->getPayment());
 	}
 
 	/**
@@ -179,10 +175,10 @@ class Order extends Base
 	/**
 	 * saves the pdf on the disk and writes it to the database
 	 */
-	public function savePDF()
+	public function renderPDF()
 	{
 		// new Order\Documents();
-		$pdf = $this->renderPDF();
+		$pdf = parent::renderPDF();
 
 		$path = $this->getFilePath($this->documentType->getName(), $this->generateHash());
 		$amount = $this->getOrderAmount();
@@ -229,7 +225,11 @@ class Order extends Base
 	 */
 	private function getFilePath($documentTypeName, $hash)
 	{
-		return Shopware()->OldPath() . 'files/documents/' . $documentTypeName . '/' . $hash . '.pdf';
+		$path = Shopware()->OldPath() . 'files/documents/' . $documentTypeName . '/';
+		if (!is_dir($path)) {
+			mkdir($path);
+		}
+		return $path . $hash . '.pdf';
 	}
 
 	/**
@@ -275,8 +275,6 @@ class Order extends Base
 				$this->saveNextDocumentNumber($this->documentType->getNumbers(), $docId);
 			}
 
-//			$orderDocumentModel = new OrderDocumentModel();
-
 			$sql = "
                INSERT INTO s_order_documents (`date`, `type`, `userID`, `orderID`, `amount`, `docID`,`hash`)
  	           VALUES ( NOW() , ? , ? , ?, ?, ?,?)
@@ -286,7 +284,7 @@ class Order extends Base
 				$sql,
 				[
 					$this->documentType->getId(),
-					$this->data['customerNumber'],
+					$this->order->getCustomer()->getId(),
 					$this->order->getId(),
 					$amount,
 					$docId,
@@ -328,7 +326,7 @@ class Order extends Base
 
 	private function isCancellation()
 	{
-		return $this->documentType->getId() == 4 ? true : false;
+		return ($this->documentType->getId() == 4 ? true : false);
 	}
 
 	/**
@@ -337,6 +335,7 @@ class Order extends Base
 	 */
 	private function increaseDocumentNumber($docId)
 	{
-		return $docId++;
+		$docId++;
+		return $docId;
 	}
 }
