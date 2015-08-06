@@ -523,7 +523,7 @@ Ext.define('Shopware.apps.Order.controller.Detail', {
      */
     onCreateDocument: function(order, config, panel) {
         var store = Ext.create('Shopware.apps.Order.store.Configuration');
-
+        console.log("onCreateDocument");
         panel.setLoading(true);
 
         config.set('orderId', order.get('id'));
@@ -536,6 +536,7 @@ Ext.define('Shopware.apps.Order.controller.Detail', {
 
                 if ( rawData.success === true ) {
                     var data = rawData.data[0];
+                    console.log(data);
                     order.set(data);
 
                     var documentStore = order['getReceiptStore'],

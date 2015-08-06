@@ -79,7 +79,8 @@ Ext.define('Shopware.apps.Base.model.DocType', {
         { name: 'right', type: 'int' },
         { name: 'top', type: 'int' },
         { name: 'bottom', type: 'int' },
-        { name: 'pageBreak', type: 'int' }
+        { name: 'pageBreak', type: 'int' },
+        { name: 'legacy', type: 'boolean' }
     ]
 
 });

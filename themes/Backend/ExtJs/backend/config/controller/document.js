@@ -97,6 +97,7 @@ Ext.define('Shopware.apps.Config.controller.Document', {
 			elementFieldSet = me.getDetail().down('fieldset[name=elementFieldSet]'),
 			elementComboBox = elementFieldSet.down('combo'),
 			elementStore = elementComboBox.getStore();
+
 		//Checks if there was an value selected before changing it
 		//Needed to save the values to the record
 		if(oldValue){

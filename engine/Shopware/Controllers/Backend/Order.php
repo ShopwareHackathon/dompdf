@@ -1149,29 +1149,24 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
      */
     public function createDocumentAction()
     {
-        try {
-            $orderId =  $this->Request()->getParam('orderId', null);
-            $documentType = $this->Request()->getParam('documentType', null);
+        $orderId = $this->Request()->getParam('orderId', null);
+        $documentTypeId = $this->Request()->getParam('documentType', null);
 
-            if (!empty($orderId) && !empty($documentType)) {
-                $this->createDocument($orderId, $documentType);
-            }
+        $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
+        $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
-            $query = $this->getRepository()->getOrdersQuery(array(array('property' => 'orders.id', 'value' => $orderId)), null, 0, 1);
-            $query->setHydrationMode(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
-            $paginator = $this->getModelManager()->createPaginator($query);
-            $order = $paginator->getIterator()->getArrayCopy();
+        //Legacy support
+        if ($documentTypeModel->getLegacy()) {
+            $this->createLegacyDocument($orderId, $documentTypeId);
+        } else {
+            /** @var Shopware\Components\Document\Order $orderDocumentService */
+            $orderDocumentService = $this->get('document_factory')->get('order');
 
-            $this->View()->assign(array(
-               'success' => true,
-               'data'    => $order
-            ));
-        } catch (Exception $e) {
-            $this->View()->assign(array(
-               'success' => false,
-               'data' => $this->Request()->getParams(),
-               'message' => $e->getMessage()
-            ));
+            $orderDocumentService->setOrder($orderModel);
+            $orderDocumentService->setDocumentType($documentTypeModel);
+
+            $orderDocumentService->setTemplate('documents/test.tpl');
+            $orderDocumentService->renderPDF();
         }
     }
 
@@ -1520,6 +1515,34 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
                     'message' => $e->getMessage()
                 )
             );
+        }
+    }
+
+    private function createLegacyDocument($orderId, $documentTypeId)
+    {
+        try {
+            $orderId =  $this->Request()->getParam('orderId', null);
+            $documentType = $this->Request()->getParam('documentType', null);
+
+            if (!empty($orderId) && !empty($documentType)) {
+                $this->createDocument($orderId, $documentType);
+            }
+
+            $query = $this->getRepository()->getOrdersQuery(array(array('property' => 'orders.id', 'value' => $orderId)), null, 0, 1);
+            $query->setHydrationMode(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
+            $paginator = $this->getModelManager()->createPaginator($query);
+            $order = $paginator->getIterator()->getArrayCopy();
+
+            $this->View()->assign(array(
+                    'success' => true,
+                    'data'    => $order
+            ));
+        } catch (Exception $e) {
+            $this->View()->assign(array(
+                    'success' => false,
+                    'data' => $this->Request()->getParams(),
+                    'message' => $e->getMessage()
+            ));
         }
     }
 }

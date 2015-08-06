@@ -44,7 +44,8 @@ Ext.define('Shopware.apps.Config.model.form.Document', {
         { name: 'right',  type: 'int' },
         { name: 'top',  type: 'int' },
         { name: 'bottom',  type: 'int' },
-        { name: 'pageBreak',  type: 'int' }
+        { name: 'pageBreak',  type: 'int' },
+        { name: 'legacy',  type: 'boolean' }
     ],
 
 	associations: [{

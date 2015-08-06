@@ -109,6 +109,15 @@ Ext.define('Shopware.apps.Config.view.form.Document', {
 				name: 'template',
 				fieldLabel: '{s name=document/detail/template_label}Template{/s}'
 			},{
+				name: 'legacy',
+				xtype: 'checkbox',
+				fieldLabel: '{s name=document/detail/legacy_label}Legacy{/s}',
+				listeners: {
+					'change': function () {
+						console.log("test");
+					}
+				}
+			},{
 				name: 'left',
                 xtype: 'config-element-number',
 				fieldLabel: '{s name=document/detail/left_label}Spacing left (mm){/s}'
