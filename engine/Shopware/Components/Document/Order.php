@@ -348,7 +348,6 @@ class Order extends Base
 		$this->modelManager->persist($this->orderDocument);
 		$this->modelManager->flush($this->orderDocument);
 
-
 		// Write file to disk
 		$path = $this->getFilePath();
 		file_put_contents($path, $pdf);
