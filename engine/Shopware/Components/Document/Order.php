@@ -7,7 +7,8 @@ use Shopware\Models\Dispatch\Dispatch,
 	Shopware\Models\Order\Document\Type as DocumentType,
 	Shopware\Models\Order\Document\Document as OrderDocumentModel,
 	Shopware\Models\Order\Number,
-	Shopware\Models\Payment\Payment;
+	Shopware\Models\Payment\Payment,
+	Shopware_Components_Translation;
 
 /**
  * TODO
@@ -45,6 +46,11 @@ class Order extends Base
 	private $dbAdapter;
 
 	/**
+	 * @var Shopware_Components_Translation
+	 */
+	private $translator;
+
+	/**
 	 * @param Shopware\Components\Model\ModelManager  $modelManager
 	 * @param Enlight_Template_Manager                $templateManager
 	 * @param Shopware\Components\Theme\Inheritance   $themeInheritance
@@ -56,6 +62,7 @@ class Order extends Base
 		parent::__construct($modelManager, $templateManager, $themeInheritance);
 		$this->config = $config;
 		$this->dbAdapter = $dbAdapter;
+		$this->translator = new Shopware_Components_Translation();
 
         $this->setDocumentDate(new \DateTime());
 	}
@@ -100,6 +107,19 @@ class Order extends Base
         }, $this->order->getDetails()->toArray());
         $this->setItems($items, $net);
 
+		// Set payment method and translate if necessary and possible
+		$paymentMethod = $this->translateConfigDescription('config_payment', $order->getPayment()->getId(), 'description');
+		if ($paymentMethod === null) {
+			$paymentMethod = $this->order->getPayment()->getDescription();
+		}
+		$this->setPaymentMethod($paymentMethod);
+
+		// Set dispatch method and translate if necessary and possible
+		$dispatchMethod = $this->translateConfigDescription('config_dispatch', $order->getDispatch()->getId(), 'dispatch_name');
+		if ($dispatchMethod === null) {
+			$dispatchMethod = $this->order->getDispatch()->getName();
+		}
+		$this->setDispatchMethod($dispatchMethod);
 
         $shipping = $order->getShipping();
 
@@ -388,6 +408,41 @@ class Order extends Base
 	private function getFilePath()
 	{
 		return Shopware()->OldPath() . 'files/documents/' . $this->orderDocument->getHash() . '.pdf';
+	}
+
+	/**
+	 * Tries to find a translation of the config element with the given type and id
+	 * in the language of the order.
+	 *
+	 * @param string $typo
+	 * @param int    $elementId
+	 * @param string $key
+	 * @return string|null
+	 */
+	private function translateConfigDescription($type, $elementId, $key)
+	{
+		$translation = $this->getTranslation($type);
+		if (isset($translation[$elementId]) && isset($translation[$elementId][$key])) {
+			return $translation[$elementId][$key];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Looks up the 'type' in the translations using the language IDs of the shop
+	 * in which the order was placed.
+	 *
+	 * @param string $type
+	 * @return The translation of the given type for the set order.
+	 */
+	private function getTranslation($type)
+	{
+		$languageId = $this->order->getLanguageSubShop()->getId();
+		$fallbackShop = $this->order->getLanguageSubShop()->getFallback();
+		$fallbackLanguageId = ($fallbackShop !== null) ? $fallbackShop->getId() : null;
+
+		return $this->translator->readBatchWithFallback($languageId, $fallbackLanguageId, $type);
 	}
 
 }
