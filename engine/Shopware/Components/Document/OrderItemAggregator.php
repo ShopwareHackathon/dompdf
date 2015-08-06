@@ -16,7 +16,7 @@ class OrderItemAggregator {
         $this->_amountNet +=  $item["amountNet"];
         $this->_amount += $item["amount"];
 
-        if ($item["tax"]['id'] != 0) {
+        if ($item["tax"] != 0) {
             $this->_tax[number_format(floatval($item["tax"]), 2)] += round($item["amount"] / ($item["tax"] + 100) * $item["tax"], 2);
         }
         if ($item["amount"] <= 0) {

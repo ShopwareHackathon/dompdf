@@ -2,7 +2,7 @@
 
 namespace Shopware\Components\Document;
 
-class OrderItemTaxation {
+class OrderTaxation {
 
     const MODUS_DEFAULT_ARTICLE = 0;
     const MODUS_PREMIUM_ARTICLE = 1;
@@ -16,7 +16,7 @@ class OrderItemTaxation {
      * @param Shopware\Models\Order\Detail $item
      * @param $net
      */
-    function processItem($item, $net) {
+    public function processItem($item, $net) {
         $order = $item->getOrder();
         $shipping = $order->getShipping();
         $customerGroupID = $order->getCustomer()->getGroup()->getId();
@@ -143,8 +143,57 @@ class OrderItemTaxation {
         return $maxTaxRate;
     }
 
+    /**
+     * Helper function to Return the nearest tax rate of an approximate tax rate (used in processOrder())
+     * Set $maxDiff to change how big the maximum difference between the approximate and defined tax rates can be
+     *
+     * @param integer|float $approximateTaxRate
+     * @param integer $areaId
+     * @param integer $countryId
+     * @param integer $stateId
+     * @param integer $customerGroupId
+     * @param integer|float $maxDiff
+     * @return string
+     */
+    public function getTaxRateByApproximateTaxRate($approximateTaxRate, $areaId, $countryId, $stateId, $customerGroupId, $maxDiff = 0.1)
+    {
+        $sql = "SELECT tax, ABS(tax - ?) as difference
+                FROM `s_core_tax`
+                WHERE ABS(tax - ?) <= ?
+            UNION
+                SELECT tax, ABS(tax - ?) as difference
+                FROM `s_core_tax_rules`
+                WHERE active = 1 AND ABS(tax - ?) <= ?
+                AND
+                    (areaID = ? OR areaID IS NULL)
+                AND
+                    (countryID = ? OR countryID IS NULL)
+                AND
+                    (stateID = ? OR stateID IS NULL)
+                AND
+                    (customer_groupID = ? OR customer_groupID = 0 OR customer_groupID IS NULL)
+                ORDER BY difference
+                LIMIT 1
+                ";
+
+        $taxRate = Shopware()->Db()->fetchOne($sql, array(
+            $approximateTaxRate, // p.e. 19.971195391 (approx. 20% VAT)
+            $approximateTaxRate,
+            $maxDiff, //default: 0.1
+            $approximateTaxRate,
+            $approximateTaxRate,
+            $maxDiff,
+            $areaId, //p.e. 3 (Europe)
+            $countryId, // p.e. 23 (AT)
+            $stateId, //p.e. 0
+            $customerGroupId //p.e. 1 (EK)
+        ));
+
+        if (!$taxRate) {
+            $taxRate = round($approximateTaxRate);
+        }
+
+        return $taxRate;
+    }
+
 }
-
-
-
-

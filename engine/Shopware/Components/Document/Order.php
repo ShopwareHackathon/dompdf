@@ -80,19 +80,69 @@ class Order extends Base
 	/**
 	 * @param \Shopware\Models\Order\Order $order
      */
-	public function setOrder(OrderModel $order)
+	public function setOrder(OrderModel $order, $shippingCostsAsPosition)
 	{
 		$this->order = $order;
 		$this->__set('customerNumber', $this->order->getCustomer()->getBilling()->getNumber());
 		$this->__set('orderNumber', $this->order->getNumber());
 		$this->__set('dispatchMethod', $this->order->getDispatch());
 		$this->__set('paymentMethod', $this->order->getPayment());
-        $orderItemTaxation = new OrderItemTaxation();
+        $orderTaxation = new OrderTaxation();
         $net = $this->order->getNet();
-        $items = array_map(function($item) use ($orderItemTaxation, $net) {
-            return $orderItemTaxation->processItem($item, $net);
+        $items = array_map(function($item) use ($orderTaxation, $net) {
+            return $orderTaxation->processItem($item, $net);
         }, $this->order->getDetails()->toArray());
         $this->setItems($items, $net);
+
+
+        $shipping = $order->getShipping();
+
+        // p.e. = 24.99 / 20.83 * 100 - 100 = 19.971195391 (approx. 20% VAT)
+        $approximateTaxRate = $order->getInvoiceShipping() / $order->getInvoiceShippingNet() * 100 - 100;
+        $taxShipping = $orderTaxation->getTaxRateByApproximateTaxRate(
+            $approximateTaxRate,
+            $shipping->getCountry()->getArea()->getId(),
+            $shipping->getCountry()->getId(),
+            $shipping->getState()->getId(),
+            $order->getCustomer()->getGroup()->getId()
+        );
+
+        if (empty($taxShipping)) {
+            $taxShipping = Shopware()->Config()->sTAXSHIPPING;
+        }
+        $taxShipping = (float) $taxShipping;
+
+        if ($order->getTaxFree()) {
+            $this->setOrderAmountNet($this->getOrderAmountNet() + $order->getInvoiceShipping());
+        } else {
+            $this->setOrderAmountNet($this->getOrderAmountNet() + ($order->getInvoiceShipping() / (100 + $taxShipping) * 100));
+            if (!empty($taxShipping) && $order->getInvoiceShipping() == 0) {
+                $this->data['tax'][number_format($taxShipping, 2)] += ($order->getInvoiceShipping() / (100 + $taxShipping)) * $taxShipping;
+            }
+        }
+
+        $this->setOrderAmount($this->getOrderAmount() + $order->getInvoiceShipping());
+
+        if ($shippingCostsAsPosition && $order->getInvoiceShipping() != 0) {
+            $shipping = array();
+            $shipping['quantity'] = 1;
+
+            if ($order->getTaxFree()) {
+                $shipping['net'] =  $order->getInvoiceShipping();
+                $shipping['tax'] = 0;
+            } else {
+                $shipping['net'] =  $order->getInvoiceShipping() / (100 + $taxShipping) * 100;
+                $shipping['tax'] = $taxShipping;
+            }
+            $shipping['price'] = $order->getInvoiceShipping();
+            $shipping['amount'] = $shipping['price'];
+            $shipping["modus"] = 1;
+            $shipping['amountNet'] = $shipping['netto'];
+            $shipping['articleordernumber'] = "";
+            $shipping['name'] = "Versandkosten";
+
+            $this->data['items'][] = $shipping;
+        }
 	}
 
 	/**
@@ -163,8 +213,8 @@ class Order extends Base
             $orderItemAggregator->addItem($item);
         }
         $this->__set('items', $items);
-        $this->__set('amountNet', $orderItemAggregator->getAmountNet());
-        $this->__set('amount', $orderItemAggregator->getAmount());
+        $this->setOrderAmountNet($orderItemAggregator->getAmountNet());
+        $this->setOrderAmount($orderItemAggregator->getAmount());
         $this->__set('tax', $orderItemAggregator->getTax());
         $this->__set('discount', $orderItemAggregator->getDiscount());
     }
@@ -303,6 +353,14 @@ class Order extends Base
 		return Shopware()->OldPath() . 'files/documents/' . $this->orderDocument->getHash() . '.pdf';
 	}
 
+    public function setOrderAmount($orderAmount) {
+        $this->__set('orderAmount', $orderAmount);
+    }
+
+    public function setOrderAmountNet($orderAmountNet) {
+        $this->__set('orderAmountNet', $orderAmountNet);
+    }
+
 	/**
 	 * Helper function to get the correct invoice amount.
 	 *
@@ -310,7 +368,108 @@ class Order extends Base
 	 */
 	private function getOrderAmount()
 	{
-		return ($this->config->get('netto')) ? round($this->order->getInvoiceAmountNet(), 2) : round($this->order->getInvoiceAmount(), 2);
+        return $this->templateData['orderAmount'];
 	}
 
+    private function getOrderAmountNet()
+    {
+        return $this->templateData['orderAmountNet'];
+    }
+
+	/**
+	 * @param string $numberRange
+	 * @return int
+	 */
+	private function getCurrentDocumentNumber($numberRange)
+	{
+		$number = $this->dbAdapter->fetchRow("
+            SELECT `number` as next FROM `s_order_number` WHERE `name` = ?", [$numberRange]
+		);
+
+		return $number['next'];
+	}
+
+	/**
+	 * TODO: Document attributes, change to DBAL / doctrine
+	 * @param $amount
+	 * @return int
+	 */
+	private function saveDocumentInDatabase($amount)
+	{
+		try {
+			$this->dbAdapter->beginTransaction();
+
+			//generates and saves the next document number
+			if ($this->isCancellation()) {
+				$docId = $this->getCurrentDocumentNumber($this->documentType->getNumbers());
+			} else {
+				$docId = $this->getCurrentDocumentNumber($this->documentType->getNumbers());
+				$docId = $this->increaseDocumentNumber($docId);
+				$this->saveNextDocumentNumber($this->documentType->getNumbers(), $docId);
+			}
+
+//			$orderDocumentModel = new OrderDocumentModel();
+
+			$sql = "
+               INSERT INTO s_order_documents (`date`, `type`, `userID`, `orderID`, `amount`, `docID`,`hash`)
+ 	           VALUES ( NOW() , ? , ? , ?, ?, ?,?)
+        	";
+
+			$this->dbAdapter->query(
+				$sql,
+				[
+					$this->documentType->getId(),
+					$this->templateData['customerNumber'],
+					$this->order->getId(),
+					$amount,
+					$docId,
+					$this->hash
+				]
+			);
+		} catch(Exception $e) {
+			$this->dbAdapter->rollBack();
+			throw new Exception(
+				'Saving the order to the Database failed with following error message: ',
+				$e->getMessage()
+			);
+		}
+		$this->dbAdapter->commit();
+
+		return $this->dbAdapter->lastInsertId();
+	}
+
+	/**
+	 * @param $numberRange
+	 * @param $number
+	 */
+	private function saveNextDocumentNumber($numberRange, $number)
+	{
+		$this->dbAdapter->query("
+            UPDATE `s_order_number` SET `number` = ? WHERE `name` = ? LIMIT 1 ;",
+			[$number, $numberRange]
+		);
+	}
+
+	/**
+	 * @param $path
+	 * @param $pdf
+	 */
+	private function writePDFToDisk($path, $pdf)
+	{
+		file_put_contents($path, $pdf);
+	}
+
+	private function isCancellation()
+	{
+		return $this->documentType->getId() == 4 ? true : false;
+	}
+
+	/**
+	 * @param int $docId
+	 * @return mixed
+	 */
+	private function increaseDocumentNumber($docId)
+	{
+		return $docId++;
+	}
 }
