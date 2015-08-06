@@ -219,6 +219,34 @@ class Order extends Base
         $this->__set('discount', $orderItemAggregator->getDiscount());
     }
 
+    /**
+     * @return float|null
+     */
+    public function getOrderAmount() {
+        return $this->templateData['orderAmount'];
+    }
+
+    /**
+     * @param float $orderAmount
+     */
+    public function setOrderAmount($orderAmount) {
+        $this->__set('orderAmount', $orderAmount);
+    }
+
+    /**
+     * @return float|null
+     */
+    public function getOrderAmountNet() {
+        return $this->templateData['orderAmountNet'];
+    }
+
+    /**
+     * @param float $orderAmountNet
+     */
+    public function setOrderAmountNet($orderAmountNet) {
+        $this->__set('orderAmountNet', $orderAmountNet);
+    }
+
 	/**
 	 * @var string $documentComment
 	 */
@@ -305,19 +333,14 @@ class Order extends Base
 		$this->setTemplate('documents/' . $this->documentType->getTemplate());
 		$pdf = $this->renderPDF();
 
-		// Determine total amount
-		$amount = $this->getOrderAmount();
-		if ($this->documentType->getId() === 4) {
-			// Cancellations have negative amounts
-			$amount *= -1;
-		}
-
 		// Save the document information
 		$hash = md5(uniqid(rand()));
+		$documentNumber = ($this->templateData['documentNumber'] !== null) ? $this->templateData['documentNumber'] : '';
+		$amount = ($this->getOrderAmount() !== null) ? $this->getOrderAmount() : 0;
 		$this->orderDocument = new OrderDocumentModel();
 		$this->orderDocument->setDate(new \DateTime());
 		$this->orderDocument->setType($this->documentType);
-		$this->orderDocument->setDocumentId($this->templateData['documentNumber']);
+		$this->orderDocument->setDocumentId($documentNumber);
 		$this->orderDocument->setCustomerId($this->order->getCustomer()->getId());
 		$this->orderDocument->setOrder($this->order);
 		$this->orderDocument->setAmount($amount);
@@ -338,7 +361,7 @@ class Order extends Base
 
 	public function __get($name)
 	{
-		if (!isset($this->templateData['name']) || !array_key_exists($name, $this->templateData)) {
+		if (!isset($this->templateData[$name]) || !array_key_exists($name, $this->templateData)) {
 			throw new \Exception('Variable ' . $name . ' not set.');
 		}
 
@@ -353,123 +376,4 @@ class Order extends Base
 		return Shopware()->OldPath() . 'files/documents/' . $this->orderDocument->getHash() . '.pdf';
 	}
 
-    public function setOrderAmount($orderAmount) {
-        $this->__set('orderAmount', $orderAmount);
-    }
-
-    public function setOrderAmountNet($orderAmountNet) {
-        $this->__set('orderAmountNet', $orderAmountNet);
-    }
-
-	/**
-	 * Helper function to get the correct invoice amount.
-	 *
-	 * @return float
-	 */
-	private function getOrderAmount()
-	{
-        return $this->templateData['orderAmount'];
-	}
-
-    private function getOrderAmountNet()
-    {
-        return $this->templateData['orderAmountNet'];
-    }
-
-	/**
-	 * @param string $numberRange
-	 * @return int
-	 */
-	private function getCurrentDocumentNumber($numberRange)
-	{
-		$number = $this->dbAdapter->fetchRow("
-            SELECT `number` as next FROM `s_order_number` WHERE `name` = ?", [$numberRange]
-		);
-
-		return $number['next'];
-	}
-
-	/**
-	 * TODO: Document attributes, change to DBAL / doctrine
-	 * @param $amount
-	 * @return int
-	 */
-	private function saveDocumentInDatabase($amount)
-	{
-		try {
-			$this->dbAdapter->beginTransaction();
-
-			//generates and saves the next document number
-			if ($this->isCancellation()) {
-				$docId = $this->getCurrentDocumentNumber($this->documentType->getNumbers());
-			} else {
-				$docId = $this->getCurrentDocumentNumber($this->documentType->getNumbers());
-				$docId = $this->increaseDocumentNumber($docId);
-				$this->saveNextDocumentNumber($this->documentType->getNumbers(), $docId);
-			}
-
-//			$orderDocumentModel = new OrderDocumentModel();
-
-			$sql = "
-               INSERT INTO s_order_documents (`date`, `type`, `userID`, `orderID`, `amount`, `docID`,`hash`)
- 	           VALUES ( NOW() , ? , ? , ?, ?, ?,?)
-        	";
-
-			$this->dbAdapter->query(
-				$sql,
-				[
-					$this->documentType->getId(),
-					$this->templateData['customerNumber'],
-					$this->order->getId(),
-					$amount,
-					$docId,
-					$this->hash
-				]
-			);
-		} catch(Exception $e) {
-			$this->dbAdapter->rollBack();
-			throw new Exception(
-				'Saving the order to the Database failed with following error message: ',
-				$e->getMessage()
-			);
-		}
-		$this->dbAdapter->commit();
-
-		return $this->dbAdapter->lastInsertId();
-	}
-
-	/**
-	 * @param $numberRange
-	 * @param $number
-	 */
-	private function saveNextDocumentNumber($numberRange, $number)
-	{
-		$this->dbAdapter->query("
-            UPDATE `s_order_number` SET `number` = ? WHERE `name` = ? LIMIT 1 ;",
-			[$number, $numberRange]
-		);
-	}
-
-	/**
-	 * @param $path
-	 * @param $pdf
-	 */
-	private function writePDFToDisk($path, $pdf)
-	{
-		file_put_contents($path, $pdf);
-	}
-
-	private function isCancellation()
-	{
-		return $this->documentType->getId() == 4 ? true : false;
-	}
-
-	/**
-	 * @param int $docId
-	 * @return mixed
-	 */
-	private function increaseDocumentNumber($docId)
-	{
-		return $docId++;
-	}
 }
