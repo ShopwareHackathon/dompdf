@@ -1155,18 +1155,14 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
         $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
-        //Legacy support
+        // Legacy support
         if ($documentTypeModel->getLegacy()) {
             $this->createLegacyDocument($orderId, $documentTypeId);
         } else {
-            /** @var Shopware\Components\Document\Order $orderDocumentService */
-            $orderDocumentService = $this->get('document_factory')->get('order');
-
-            $orderDocumentService->setOrder($orderModel);
-            $orderDocumentService->setDocumentType($documentTypeModel);
-
-            $orderDocumentService->setTemplate('documents/test.tpl');
-            $orderDocumentService->renderPDF();
+            $document = $this->get('document_factory')->getOrderInstance();
+            $document->setOrder($orderModel);
+            $document->setDocumentType($documentTypeModel);
+            $document->savePDF();
         }
     }
 
