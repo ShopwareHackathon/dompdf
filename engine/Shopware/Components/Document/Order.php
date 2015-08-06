@@ -38,8 +38,28 @@ class Order extends Base
 	 */
 	private $hash;
 
-	public function __construct()
+	/**
+	 * @var Shopware_Components_Config
+	 */
+	private $config;
+
+	/**
+	 * @var Enlight_Components_Db_Adapter_Pdo_Mysql
+	 */
+	private $dbAdapter;
+
+	/**
+	 * @param Shopware\Components\Model\ModelManager  $modelManager
+	 * @param Enlight_Template_Manager                $templateManager
+	 * @param Shopware\Components\Theme\Inheritance   $themeInheritance
+	 * @param Shopware_Components_Config              $config
+	 * @param Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter
+	 */
+	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Inheritance $themeInheritance, Shopware_Components_Config $config, Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter)
 	{
+		parent::__construct($modelManager, $templateManager, $themeInheritance);
+		$this->config = $config;
+		$this->dbAdapter = $dbAdapter;
 	}
 
 	/**
@@ -257,8 +277,7 @@ class Order extends Base
 	 */
 	private function getOrderAmount()
 	{
-		$config = Shopware()->Container()->get('config');
-		return $config->get('netto') == true ? round($this->order->getInvoiceAmountNet(), 2) : round($this->order->getInvoiceAmount(), 2);
+		return $this->config->get('netto') == true ? round($this->order->getInvoiceAmountNet(), 2) : round($this->order->getInvoiceAmount(), 2);
 	}
 
 	/**
@@ -267,7 +286,7 @@ class Order extends Base
 	 */
 	private function getCurrentDocumentNumber($numberRange)
 	{
-		$number = Shopware()->Db()->fetchRow("
+		$number = $this->dbAdapter->fetchRow("
             SELECT `number` as next FROM `s_order_number` WHERE `name` = ?", [$numberRange]
 		);
 
@@ -282,7 +301,7 @@ class Order extends Base
 	private function saveDocumentInDatabase($amount)
 	{
 		try {
-			Shopware()->Db()->beginTransaction();
+			$this->dbAdapter->beginTransaction();
 
 			//generates and saves the next document number
 			if ($this->isCancellation()) {
@@ -300,7 +319,7 @@ class Order extends Base
  	           VALUES ( NOW() , ? , ? , ?, ?, ?,?)
         	";
 
-			Shopware()->Db()->query(
+			$this->dbAdapter->query(
 				$sql,
 				[
 					$this->documentType->getId(),
@@ -312,15 +331,15 @@ class Order extends Base
 				]
 			);
 		} catch(Exception $e) {
-			Shopware()->Db()->rollBack();
+			$this->dbAdapter->rollBack();
 			throw new Exception(
 				'Saving the order to the Database failed with following error message: ',
 				$e->getMessage()
 			);
 		}
-		Shopware()->Db()->commit();
+		$this->dbAdapter->commit();
 
-		return Shopware()->Db()->lastInsertId();
+		return $this->dbAdapter->lastInsertId();
 	}
 
 	/**
@@ -329,7 +348,7 @@ class Order extends Base
 	 */
 	private function saveNextDocumentNumber($numberRange, $number)
 	{
-		Shopware()->Db()->query("
+		$this->dbAdapter->query("
             UPDATE `s_order_number` SET `number` = ? WHERE `name` = ? LIMIT 1 ;",
 			[$number, $numberRange]
 		);

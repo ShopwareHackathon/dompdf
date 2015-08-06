@@ -5,6 +5,9 @@ namespace Shopware\Components\Document;
 use Enlight_Class,
 	Enlight_Hook,
 	Enlight_Template_Manager,
+	Shopware_Components_Config,
+	Shopware\Components\Model\ModelManager,
+	Shopware\Components\Theme\Inheritance,
 	Dompdf\Dompdf;
 
 /**
@@ -29,7 +32,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 	 *
 	 * @var Enlight_Template_Manager
 	 */
-	private $templateManager;
+	protected $templateManager;
 
 	/**
 	 * The file name of the template that shall be rendered.
@@ -60,16 +63,33 @@ class Base extends Enlight_Class implements Enlight_Hook
 	private $pdf;
 
 	/**
-	 * Initializes both dompdf and the template manager (Smarty).
+	 * @var Shopware\Components\Model\ModelManager
 	 */
-	public function __construct()
+	protected $modelManager;
+
+	/**
+	 * @var Shopware\Components\Model\ModelManager
+	 */
+	protected $themeInheritance;
+
+	/**
+	 * Initializes both dompdf and the template manager (Smarty).
+	 *
+	 * @param Shopware\Components\Model\ModelManager $modelManager
+	 * @param Enlight_Template_Manager               $templateManager
+	 * @param Shopware\Components\Theme\Inheritance  $themeInheritance
+	 */
+	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Inheritance $themeInheritance)
 	{
+		$this->modelManager = $modelManager;
+		$this->themeInheritance = $themeInheritance;
+
 		// Initialize dompdf
 		$this->dompdf = new Dompdf();
 		$this->dompdf->setPaper('A4', 'portrait');
 
 		// Initialize template manager (Smarty)
-		$this->templateManager = Shopware()->Container()->get('template'); // clone ...?
+		$this->templateManager = $templateManager; // clone ...?
 		$this->templateManager->setTemplateDir($this->getDefaultTemplateDirs());
 	}
 
@@ -231,8 +251,8 @@ class Base extends Enlight_Class implements Enlight_Hook
 	private function getDefaultTemplateDirs()
 	{
 		// Use the default shop's template for inheritance
-		$defaultShop = Shopware()->Container()->get('models')->getRepository('\Shopware\Models\Shop\Shop')->getDefault();
-		$templateDirs = Shopware()->Container()->get('theme_inheritance')->getTemplateDirectories($defaultShop->getDocumentTemplate());
+		$defaultShop = $this->modelManager->getRepository('\Shopware\Models\Shop\Shop')->getDefault();
+		$templateDirs = $this->themeInheritance->getTemplateDirectories($defaultShop->getDocumentTemplate());
 
 		return $templateDirs;
 	}
