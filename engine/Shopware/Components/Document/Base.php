@@ -201,6 +201,31 @@ class Base extends Enlight_Class implements Enlight_Hook
 	}
 
 	/**
+	 * Streams the PDF file to the client's web browser using the given 'displayFilename'.
+	 * If no PDF file has been rendered yet, 'renderPDF' is called first.
+	 * If the optional 'asAttachment' flag is set to true, the client's web browser will
+	 * download the file instead of displaying it. To disable the compression of the
+	 * data stream (e.g. for development) set 'enableContentCompression' to false.
+	 *
+	 * @param string  $displayFilename
+	 * @param boolean $asAttachment (optional, defaults to false)
+	 * @param boolean $enableContentCompression (optional, defaults to true)
+	 */
+	public function respondWithPDF($displayFilename, $asAttachment = false, $enableContentCompression = true)
+	{
+		// Make sure the PDF exists
+		if ($this->pdf === null) {
+			$this->renderPDF();
+		}
+
+		// Stream the PDF to the client's web browser
+		$this->dompdf->stream($displayFilename, array(
+			'Attachment' => $asAttachment,
+			'compress' => $enableContentCompression
+		));
+	}
+
+	/**
 	 * @return The inheritance template directories of the default shop.
 	 */
 	private function getDefaultTemplateDirs()
