@@ -342,10 +342,11 @@ class Order extends Base
 
 		// Save the document information
 		$hash = md5(uniqid(rand()));
+		$documentNumber = ($this->templateData['documentNumber'] !== null) ? $this->templateData['documentNumber'] : '';
 		$this->orderDocument = new OrderDocumentModel();
 		$this->orderDocument->setDate(new \DateTime());
 		$this->orderDocument->setType($this->documentType);
-		$this->orderDocument->setDocumentId($this->templateData['documentNumber']);
+		$this->orderDocument->setDocumentId($documentNumber);
 		$this->orderDocument->setCustomerId($this->order->getCustomer()->getId());
 		$this->orderDocument->setOrder($this->order);
 		$this->orderDocument->setAmount($amount);
