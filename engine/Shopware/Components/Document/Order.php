@@ -142,7 +142,7 @@ class Order extends Base
             $this->setOrderAmountNet($this->getOrderAmountNet() + $order->getInvoiceShipping());
         } else {
             $this->setOrderAmountNet($this->getOrderAmountNet() + ($order->getInvoiceShipping() / (100 + $taxShipping) * 100));
-            if (!empty($taxShipping) && $order->getInvoiceShipping() == 0) {
+            if (!empty($taxShipping) && $order->getInvoiceShipping() != 0) {
                 $this->templateData['tax'][number_format($taxShipping, 2)] += ($order->getInvoiceShipping() / (100 + $taxShipping)) * $taxShipping;
             }
         }
