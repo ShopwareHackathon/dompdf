@@ -219,6 +219,34 @@ class Order extends Base
         $this->__set('discount', $orderItemAggregator->getDiscount());
     }
 
+    /**
+     * @return float|null
+     */
+    public function getOrderAmount() {
+        return $this->templateData['orderAmount'];
+    }
+
+    /**
+     * @param float $orderAmount
+     */
+    public function setOrderAmount($orderAmount) {
+        $this->__set('orderAmount', $orderAmount);
+    }
+
+    /**
+     * @return float|null
+     */
+    public function getOrderAmountNet() {
+        return $this->templateData['orderAmountNet'];
+    }
+
+    /**
+     * @param float $orderAmountNet
+     */
+    public function setOrderAmountNet($orderAmountNet) {
+        $this->__set('orderAmountNet', $orderAmountNet);
+    }
+
 	/**
 	 * @var string $documentComment
 	 */
@@ -352,28 +380,5 @@ class Order extends Base
 	{
 		return Shopware()->OldPath() . 'files/documents/' . $this->orderDocument->getHash() . '.pdf';
 	}
-
-    public function setOrderAmount($orderAmount) {
-        $this->__set('orderAmount', $orderAmount);
-    }
-
-    public function setOrderAmountNet($orderAmountNet) {
-        $this->__set('orderAmountNet', $orderAmountNet);
-    }
-
-	/**
-	 * Helper function to get the correct invoice amount.
-	 *
-	 * @return float
-	 */
-	private function getOrderAmount()
-	{
-        return $this->templateData['orderAmount'];
-	}
-
-    private function getOrderAmountNet()
-    {
-        return $this->templateData['orderAmountNet'];
-    }
 
 }
