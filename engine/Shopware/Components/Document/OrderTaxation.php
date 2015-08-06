@@ -46,7 +46,7 @@ class OrderTaxation {
                         $shipping->getCountry()->getArea()->getId(),
                         $shipping->getCountry()->getId(),
                         $shipping->getCountry()->getState()->getId(),
-                        $order->getCustomer()->getGroup()->getId()
+                        $customerGroupID
                     );
                 } else {
                     $processedItem['tax'] = $item->getTaxRate();
@@ -59,7 +59,7 @@ class OrderTaxation {
                         $shipping->getCountry()->getArea()->getId(),
                         $shipping->getCountry()->getId(),
                         $shipping->getCountry()->getState()->getId(),
-                        $order->getCustomer()->getGroup()->getId()
+                        $customerGroupID
                     );
                 } else {
                     $processedItem['tax'] = $item->getTaxRate();
@@ -68,9 +68,9 @@ class OrderTaxation {
 
             if ($net == true) {
                 $processedItem['net'] = round($item->getPrice(), 2);
-                $processedItem['price'] = round($item->getPrice(), 2) * (1 + $item->getTax() / 100);
+                $processedItem['price'] = round($item->getPrice(), 2) * (1 + $processedItem['tax'] / 100);
             } else {
-                $processedItem['net'] = $item->getPrice() / (100 + $item->getTax()) * 100;
+                $processedItem['net'] = $item->getPrice() / (100 + $processedItem['tax']) * 100;
             }
         } elseif ($item->getMode() == self::MODUS_VOUCHER) {
             $ticketResult = Shopware()->Db()->fetchRow('
@@ -99,9 +99,9 @@ class OrderTaxation {
             }
             if ($net == true) {
                 $processedItem['net'] = $item->getPrice();
-                $processedItem['price'] =  $item->getPrice() * (1 + $item->getTax() / 100);
+                $processedItem['price'] =  $item->getPrice() * (1 + $processedItem['tax'] / 100);
             } else {
-                $processedItem['net'] =  $item->getPrice() / (100 + $item->getTax()) * 100;
+                $processedItem['net'] =  $item->getPrice() / (100 + $processedItem['tax']) * 100;
             }
         } elseif ($item->getMode() == self::MODUS_PREMIUM_ARTICLE) {
             $processedItem['tax'] = 0;
