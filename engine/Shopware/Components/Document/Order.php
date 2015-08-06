@@ -64,6 +64,12 @@ class Order extends Base
 		$this->__set('orderNumber', $this->order->getNumber());
 		$this->__set('dispatchMethod', $this->order->getDispatch());
 		$this->__set('paymentMethod', $this->order->getPayment());
+        $orderItemTaxation = new OrderItemTaxation();
+        $net = $this->order->getNet();
+        $items = array_map(function($item) use ($orderItemTaxation, $net) {
+            return $orderItemTaxation->processItem($item, $net);
+        }, $this->order->getDetails()->toArray());
+        $this->setItems($items, $net);
 	}
 
 	/**
@@ -123,10 +129,22 @@ class Order extends Base
 		$this->__set('documentNumber', $documentNumber);
 	}
 
-	public function setItems()
-	{
-
-	}
+    /**
+     * @param array $items The order items
+     * @param bool $net
+     */
+	public function setItems($items, $net) {
+        $this->__set('net', $net);
+        $orderItemAggregator = new OrderItemAggregator;
+        foreach ($items as $item) {
+            $orderItemAggregator->addItem($item);
+        }
+        $this->__set('items', $items);
+        $this->__set('amountNet', $orderItemAggregator->getAmountNet());
+        $this->__set('amount', $orderItemAggregator->getAmount());
+        $this->__set('tax', $orderItemAggregator->getTax());
+        $this->__set('discount', $orderItemAggregator->getDiscount());
+    }
 
 	/**
 	 * @var string $documentComment
