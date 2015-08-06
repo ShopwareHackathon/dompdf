@@ -1152,17 +1152,27 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         $orderId = $this->Request()->getParam('orderId', null);
         $documentTypeId = $this->Request()->getParam('documentType', null);
 
+        /** @var Shopware\Models\Order\Order $orderModel */
         $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
+        /** @var Shopware\Models\Order\Document\Type $documentTypeModel */
         $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
         // Legacy support
         if ($documentTypeModel->getLegacy()) {
             $this->createLegacyDocument($orderId, $documentTypeId);
         } else {
-            $document = $this->get('document_factory')->getOrderInstance();
-            $document->setOrder($orderModel);
+            /** @var \Shopware\Components\Document\Order $document */
+            $document = $this->get('document_factory')->createOrderInstance();
+
+            $surcharge = $orderModel->getDispatch()->getSurchargeCalculation();
+            $shippingCostsAsPosition = ($surcharge == 3) ? true : false;
+
+            $document->setOrder($orderModel,$shippingCostsAsPosition);
+
             $document->setDocumentType($documentTypeModel);
             $document->savePDF();
+            $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
+            $orderModel = $this->get('models')->toArray($orderModel);
         }
     }
 
