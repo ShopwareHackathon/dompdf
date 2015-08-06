@@ -22,42 +22,42 @@ class Base extends Enlight_Class implements Enlight_Hook
 	 *
 	 * @var dompdf\dompdf
 	 */
-	public $dompdf;
+	private $dompdf;
 
 	/**
 	 * The template manager, that is Smarty instance, used for rendering the template to HTML.
 	 *
 	 * @var Enlight_Template_Manager
 	 */
-	public $template;
+	private $templateManager;
 
 	/**
 	 * The file name of the template that shall be rendered.
 	 *
 	 * @var string
 	 */
-	public $templateName;
+	private $templateName;
 
 	/**
 	 * Contains all data that is passed to the template.
 	 *
 	 * @var array
 	 */
-	public $templateData = array();
+	private $templateData = array();
 
 	/**
 	 * The HTML resulting from rendering the smarty template.
 	 *
 	 * @var string
 	 */
-	public $html;
+	private $html;
 
 	/**
 	 * Contains the raw data of the rendered PDF file.
 	 *
 	 * @var array
 	 */
-	public $pdf;
+	private $pdf;
 
 	/**
 	 * Initializes both dompdf and the template manager (Smarty).
@@ -69,8 +69,95 @@ class Base extends Enlight_Class implements Enlight_Hook
 		$this->dompdf->setPaper('A4', 'portrait');
 
 		// Initialize template manager (Smarty)
-		$this->template = Shopware()->Container()->get('template'); // clone ...?
-		$this->template->setTemplateDir($this->getDefaultTemplateDirs());
+		$this->templateManager = Shopware()->Container()->get('template'); // clone ...?
+		$this->templateManager->setTemplateDir($this->getDefaultTemplateDirs());
+	}
+
+	/**
+	 * @return $dompdf
+	 */
+	public function getDompdf()
+	{
+		return $this->dompdf;
+	}
+
+	/**
+	 * @return $templateManager
+	 */
+	public function getTemplateManager()
+	{
+		return $this->templateManager;
+	}
+
+	/**
+	 * @return $templateName
+	 */
+	public function getTemplateName()
+	{
+		return $this->templateName;
+	}
+
+	/**
+	 * Sets the name of the template that shall be rendered. If the optional
+	 * 'templateDir' parameter is set, it is added to the template manager's
+	 * template directories.
+	 *
+	 * @param string $name
+	 * @param string|null $templateDir
+	 */
+	public function setTemplate($name, $templateDir = null)
+	{
+		$this->templateName = $name;
+		if ($templateDir) {
+			$this->templateManager->addTemplateDir($templateDir);
+		}
+	}
+
+	/**
+	 * @return $templateData
+	 */
+	public function getTemplateData()
+	{
+		return $this->templateData;
+	}
+
+	/**
+	 * @param array $templateData
+	 */
+	public function setTemplateData($templateData)
+	{
+		$this->templateData = $templateData;
+	}
+
+	/**
+	 * @return $html
+	 */
+	public function getHTML()
+	{
+		return $this->html;
+	}
+
+	/**
+	 * @param string $html
+	 */
+	public function setHTML($html)
+	{
+		$this->html = $html;
+	}
+
+	/**
+	 * Assigns the template data to the Smarty template and renders it to HTML.
+	 */
+	public function generateHTML()
+	{
+		if ($this->templateName === null) {
+			throw new Exception('"templateName" not set!');
+		}
+
+		// Render the smarty template using the template manager
+		$view = $this->templateManager->createData();
+		$view->assign($this->templateData);
+		$this->html = $this->templateManager->fetch($this->templateName, $view);
 	}
 
 	/**
@@ -85,42 +172,11 @@ class Base extends Enlight_Class implements Enlight_Hook
 	}
 
 	/**
-	 * Sets the name of the template that shall be rendered. If the optional
-	 * 'path' parameter is set, it is added to the template manager's
-	 * template directories.
-	 *
-	 * @param string $name
-	 * @param string|null $path
+	 * @return $pdf
 	 */
-	public function setTemplate($name, $path = null)
+	public function getPDF()
 	{
-		$this->templateName = $name;
-		if ($path) {
-			$this->template->addTemplateDir($path);
-		}
-	}
-
-	/**
-	 * @param array $templateData
-	 */
-	public function setTemplateData($templateData)
-	{
-		$this->templateData = $templateData;
-	}
-
-	/**
-	 * Assigns the template data to the Smarty template and renders it to HTML.
-	 */
-	public function generateHTML()
-	{
-		if ($this->templateName === null) {
-			throw new Exception('"templateName" not set!');
-		}
-
-		// Render the smarty template using the template manager
-		$view = $this->template->createData();
-		$view->assign($this->templateData);
-		$this->html = $this->template->fetch($this->templateName, $view);
+		return $this->pdf;
 	}
 
 	/**
