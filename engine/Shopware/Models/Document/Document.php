@@ -123,9 +123,11 @@ class Document extends ModelEntity
 
     /**
      * @var boolean $legacy
+     *
      * @ORM\Column(name="legacy", type="boolean", nullable=false)
      */
     private $legacy;
+
     /**
      * Getter function for the unique id identifier property
      *
@@ -339,7 +341,7 @@ class Document extends ModelEntity
     /**
      * @return boolean
      */
-    public function setLegacy()
+    public function isLegacy()
     {
         return $this->legacy;
     }
@@ -347,8 +349,9 @@ class Document extends ModelEntity
     /**
      * @param boolean $legacy
      */
-    public function getLegacy($legacy)
+    public function setLegacy($legacy)
     {
         $this->legacy = $legacy;
     }
+
 }
