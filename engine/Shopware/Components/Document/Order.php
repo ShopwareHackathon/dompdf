@@ -2,12 +2,12 @@
 
 namespace Shopware\Components\Document;
 
-use Shopware\Models\Dispatch\Dispatch;
-use Shopware\Models\Order\Document\Type as DocumentType;
-use Shopware\Models\Order\Document\Document as OrderDocumentModel;
-use Shopware\Models\Order\Order as OrderModel;
-use Shopware\Models\Payment\Payment;
-use Symfony\Component\Config\Definition\Exception\Exception;
+use Shopware\Models\Dispatch\Dispatch,
+	Shopware\Models\Order\Order as OrderModel,
+	Shopware\Models\Order\Document\Type as DocumentType,
+	Shopware\Models\Order\Document\Document as OrderDocumentModel,
+	Shopware\Models\Order\Number,
+	Shopware\Models\Payment\Payment;
 
 /**
  * TODO
@@ -18,13 +18,9 @@ use Symfony\Component\Config\Definition\Exception\Exception;
  */
 class Order extends Base
 {
-	/**
-	 * @var array
-	 */
-	private $data = [];
 
 	/**
-	 * @var DocumentType
+	 * @var \Shopware\Models\Order\Document\Type
 	 */
 	private $documentType;
 
@@ -34,32 +30,119 @@ class Order extends Base
 	private $order;
 
 	/**
-	 * @var string
+	 * @var \Shopware\Models\Order\Document\Document
 	 */
-	private $hash;
+	private $orderDocument;
 
 	/**
-	 * @param DocumentType $type
+	 * @var Shopware_Components_Config
 	 */
-	public function setDocumentType(DocumentType $type)
-	{
-		$this->documentType = $type;
+	private $config;
 
-		if ( $this->documentType->getNumbers()) {
-			$this->__set('documentNumber', $this->documentType->getNumbers());
+	/**
+	 * @var Enlight_Components_Db_Adapter_Pdo_Mysql
+	 */
+	private $dbAdapter;
+
+	/**
+	 * @param Shopware\Components\Model\ModelManager  $modelManager
+	 * @param Enlight_Template_Manager                $templateManager
+	 * @param Shopware\Components\Theme\Inheritance   $themeInheritance
+	 * @param Shopware_Components_Config              $config
+	 * @param Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter
+	 */
+	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Inheritance $themeInheritance, Shopware_Components_Config $config, Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter)
+	{
+		parent::__construct($modelManager, $templateManager, $themeInheritance);
+		$this->config = $config;
+		$this->dbAdapter = $dbAdapter;
+	}
+
+	/**
+	 * @param int $typeId
+	 */
+	public function setDocumentTypeId($typeId)
+	{
+		$this->documentType = $this->modelManager->find('\Shopware\Models\Order\Document\Type', $typeId);
+		if ($this->documentType === null) {
+			throw new \Exception('Document type with ID ' . $typeId . ' not found.');
 		}
 	}
 
 	/**
-	 * @param OrderModel $order
+	 * @param \Shopware\Models\Order\Document\Type $type
+	 */
+	public function setDocumentType(DocumentType $type)
+	{
+		$this->documentType = $type;
+	}
+
+	/**
+	 * @param \Shopware\Models\Order\Order $order
      */
-	public function setOrder(OrderModel $order)
+	public function setOrder(OrderModel $order, $shippingCostsAsPosition)
 	{
 		$this->order = $order;
-		$this->setCustomerNumber($this->order->getCustomer()->getBilling()->getNumber());
-		$this->setOrderNumber($this->order->getNumber());
-		$this->setDispatchMethod($this->order->getDispatch());
-		$this->setPaymentMethod($this->order->getPayment());
+		$this->__set('customerNumber', $this->order->getCustomer()->getBilling()->getNumber());
+		$this->__set('orderNumber', $this->order->getNumber());
+		$this->__set('dispatchMethod', $this->order->getDispatch());
+		$this->__set('paymentMethod', $this->order->getPayment());
+        $orderTaxation = new OrderTaxation();
+        $net = $this->order->getNet();
+        $items = array_map(function($item) use ($orderTaxation, $net) {
+            return $orderTaxation->processItem($item, $net);
+        }, $this->order->getDetails()->toArray());
+        $this->setItems($items, $net);
+
+
+        $shipping = $order->getShipping();
+
+        // p.e. = 24.99 / 20.83 * 100 - 100 = 19.971195391 (approx. 20% VAT)
+        $approximateTaxRate = $order->getInvoiceShipping() / $order->getInvoiceShippingNet() * 100 - 100;
+        $taxShipping = $orderTaxation->getTaxRateByApproximateTaxRate(
+            $approximateTaxRate,
+            $shipping->getCountry()->getArea()->getId(),
+            $shipping->getCountry()->getId(),
+            $shipping->getState()->getId(),
+            $order->getCustomer()->getGroup()->getId()
+        );
+
+        if (empty($taxShipping)) {
+            $taxShipping = Shopware()->Config()->sTAXSHIPPING;
+        }
+        $taxShipping = (float) $taxShipping;
+
+        if ($order->getTaxFree()) {
+            $this->setOrderAmountNet($this->getOrderAmountNet() + $order->getInvoiceShipping());
+        } else {
+            $this->setOrderAmountNet($this->getOrderAmountNet() + ($order->getInvoiceShipping() / (100 + $taxShipping) * 100));
+            if (!empty($taxShipping) && $order->getInvoiceShipping() == 0) {
+                $this->templateData['tax'][number_format($taxShipping, 2)] += ($order->getInvoiceShipping() / (100 + $taxShipping)) * $taxShipping;
+            }
+        }
+
+        $this->setOrderAmount($this->getOrderAmount() + $order->getInvoiceShipping());
+
+        if ($shippingCostsAsPosition && $order->getInvoiceShipping() != 0) {
+            $shipping = array();
+            $shipping['quantity'] = 1;
+
+            if ($order->getTaxFree()) {
+                $shipping['net'] =  $order->getInvoiceShipping();
+                $shipping['tax'] = 0;
+            } else {
+                $shipping['net'] =  $order->getInvoiceShipping() / (100 + $taxShipping) * 100;
+                $shipping['tax'] = $taxShipping;
+            }
+            $shipping['price'] = $order->getInvoiceShipping();
+            $shipping['amount'] = $shipping['price'];
+            $shipping["modus"] = 1;
+            $shipping['amountNet'] = $shipping['netto'];
+            $shipping['articleordernumber'] = "";
+            $shipping['name'] = "Versandkosten";
+
+            $this->templateData['items'][] = $shipping;
+        }
 	}
 
 	/**
@@ -119,10 +202,22 @@ class Order extends Base
 		$this->__set('documentNumber', $documentNumber);
 	}
 
-	public function setItems()
-	{
-
-	}
+    /**
+     * @param array $items The order items
+     * @param bool $net
+     */
+	public function setItems($items, $net) {
+        $this->__set('net', $net);
+        $orderItemAggregator = new OrderItemAggregator;
+        foreach ($items as $item) {
+            $orderItemAggregator->addItem($item);
+        }
+        $this->__set('items', $items);
+        $this->setOrderAmountNet($orderItemAggregator->getAmountNet());
+        $this->setOrderAmount($orderItemAggregator->getAmount());
+        $this->__set('tax', $orderItemAggregator->getTax());
+        $this->__set('discount', $orderItemAggregator->getDiscount());
+    }
 
 	/**
 	 * @var string $documentComment
@@ -175,73 +270,111 @@ class Order extends Base
 	/**
 	 * saves the pdf on the disk and writes it to the database
 	 */
-	public function renderPDF()
+	public function savePDF()
 	{
-		// new Order\Documents();
-		$pdf = parent::renderPDF();
+		if ($this->orderDocument !== null) {
+			throw new \Exception('The order document has already been saved to ' . $this->getFilePath());
+		} else if ($this->order === null) {
+			throw new \Exception('No order set. Use \'renderPDF\' instead and save it manually.');
+		} else if ($this->documentType === null) {
+			throw new \Exception('No document type set.');
+		}
 
-		$path = $this->getFilePath($this->documentType->getName(), $this->generateHash());
+		// Check if a document number must be generated
+		$documentNumberName = $this->documentType->getNumbers();
+		if ($this->templateData['documentNumber'] === null && !empty($documentNumberName)) {
+			// Determine the next document number in a transaction to prevent numbers from being used twice
+			$this->templateData['documentNumber'] = $this->modelManager->transactional(function($em) use ($documentNumberName) {
+				// Get the respective order number
+				$number = $em->getRepository('\Shopware\Models\Order\Number')->findOneBy(array(
+					'name' => $documentNumberName
+				));
+				if ($number === null) {
+					return null;
+				}
+
+				// Increase it and write it back
+				$nextNumber = $number->getNumber() + 1;
+				$number->setNumber($nextNumber);
+
+				return $nextNumber;
+			});
+		}
+
+		// Render the PDF file
+		$this->setTemplate('documents/' . $this->documentType->getTemplate());
+		$pdf = $this->renderPDF();
+
+		// Determine total amount
 		$amount = $this->getOrderAmount();
-
-		/**
-		 * For cancellations
-		 */
-		if ($this->documentType->getId() == 4) {
+		if ($this->documentType->getId() === 4) {
+			// Cancellations have negative amounts
 			$amount *= -1;
 		}
 
-		$this->saveDocumentInDatabase($amount);
+		// Save the document information
+		$hash = md5(uniqid(rand()));
+		$this->orderDocument = new OrderDocumentModel();
+		$this->orderDocument->setDate(new \DateTime());
+		$this->orderDocument->setType($this->documentType);
+		$this->orderDocument->setDocumentId($this->templateData['documentNumber']);
+		$this->orderDocument->setCustomerId($this->order->getCustomer()->getId());
+		$this->orderDocument->setOrder($this->order);
+		$this->orderDocument->setAmount($amount);
+		$this->orderDocument->setHash($hash);
+		$this->modelManager->persist($this->orderDocument);
+		$this->modelManager->flush($this->orderDocument);
 
-		$this->writePDFToDisk($path, $pdf);
+
+		// Write file to disk
+		$path = $this->getFilePath();
+		file_put_contents($path, $pdf);
 	}
 
 	public function __set($name, $value = null)
 	{
-		$this->data[$name] = $value;
+		$this->templateData[$name] = $value;
 	}
 
 	public function __get($name)
 	{
-		if (!isset($this->data['name']) || !array_key_exists($name, $this->data)) {
-			throw new \Exception('Variable ' . $name . ' not setted.');
+		if (!isset($this->templateData['name']) || !array_key_exists($name, $this->templateData)) {
+			throw new \Exception('Variable ' . $name . ' not set.');
 		}
-		return $this->data[$name];
+
+		return $this->templateData[$name];
 	}
 
 	/**
-	 * Generates the document hash
 	 * @return string
 	 */
-	private function generateHash()
+	private function getFilePath()
 	{
-		$this->hash = md5(uniqid(rand()));
-		return $this->hash;
+		return Shopware()->OldPath() . 'files/documents/' . $this->orderDocument->getHash() . '.pdf';
 	}
 
-	/**
-	 * @param string $documentTypeName
-	 * @param string $hash
-	 * @return string
-	 */
-	private function getFilePath($documentTypeName, $hash)
-	{
-		$path = Shopware()->OldPath() . 'files/documents/' . $documentTypeName . '/';
-		if (!is_dir($path)) {
-			mkdir($path);
-		}
-		return $path . $hash . '.pdf';
-	}
+    public function setOrderAmount($orderAmount) {
+        $this->__set('orderAmount', $orderAmount);
+    }
+
+    public function setOrderAmountNet($orderAmountNet) {
+        $this->__set('orderAmountNet', $orderAmountNet);
+    }
 
 	/**
-	 * Helper function to get the correct invoice amount
+	 * Helper function to get the correct invoice amount.
+	 *
 	 * @return float
-	 * @throws \Exception
 	 */
 	private function getOrderAmount()
 	{
-		$config = Shopware()->Container()->get('config');
-		return $config->get('netto') == true ? round($this->order->getInvoiceAmountNet(), 2) : round($this->order->getInvoiceAmount(), 2);
+        return $this->templateData['orderAmount'];
 	}
+
+    private function getOrderAmountNet()
+    {
+        return $this->templateData['orderAmountNet'];
+    }
 
 	/**
 	 * @param string $numberRange
@@ -249,7 +382,7 @@ class Order extends Base
 	 */
 	private function getCurrentDocumentNumber($numberRange)
 	{
-		$number = Shopware()->Db()->fetchRow("
+		$number = $this->dbAdapter->fetchRow("
             SELECT `number` as next FROM `s_order_number` WHERE `name` = ?", [$numberRange]
 		);
 
@@ -264,7 +397,7 @@ class Order extends Base
 	private function saveDocumentInDatabase($amount)
 	{
 		try {
-			Shopware()->Db()->beginTransaction();
+			$this->dbAdapter->beginTransaction();
 
 			//generates and saves the next document number
 			if ($this->isCancellation()) {
@@ -275,16 +408,18 @@ class Order extends Base
 				$this->saveNextDocumentNumber($this->documentType->getNumbers(), $docId);
 			}
 
+//			$orderDocumentModel = new OrderDocumentModel();
+
 			$sql = "
                INSERT INTO s_order_documents (`date`, `type`, `userID`, `orderID`, `amount`, `docID`,`hash`)
  	           VALUES ( NOW() , ? , ? , ?, ?, ?,?)
         	";
 
-			Shopware()->Db()->query(
+			$this->dbAdapter->query(
 				$sql,
 				[
 					$this->documentType->getId(),
-					$this->order->getCustomer()->getId(),
+					$this->templateData['customerNumber'],
 					$this->order->getId(),
 					$amount,
 					$docId,
@@ -292,15 +427,15 @@ class Order extends Base
 				]
 			);
 		} catch(Exception $e) {
-			Shopware()->Db()->rollBack();
+			$this->dbAdapter->rollBack();
 			throw new Exception(
 				'Saving the order to the Database failed with following error message: ',
 				$e->getMessage()
 			);
 		}
-		Shopware()->Db()->commit();
+		$this->dbAdapter->commit();
 
-		return Shopware()->Db()->lastInsertId();
+		return $this->dbAdapter->lastInsertId();
 	}
 
 	/**
@@ -309,7 +444,7 @@ class Order extends Base
 	 */
 	private function saveNextDocumentNumber($numberRange, $number)
 	{
-		Shopware()->Db()->query("
+		$this->dbAdapter->query("
             UPDATE `s_order_number` SET `number` = ? WHERE `name` = ? LIMIT 1 ;",
 			[$number, $numberRange]
 		);
@@ -326,7 +461,7 @@ class Order extends Base
 
 	private function isCancellation()
 	{
-		return ($this->documentType->getId() == 4 ? true : false);
+		return $this->documentType->getId() == 4 ? true : false;
 	}
 
 	/**
@@ -335,7 +470,6 @@ class Order extends Base
 	 */
 	private function increaseDocumentNumber($docId)
 	{
-		$docId++;
-		return $docId;
+		return $docId++;
 	}
 }
