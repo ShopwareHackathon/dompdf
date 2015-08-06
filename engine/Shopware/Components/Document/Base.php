@@ -46,7 +46,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 	 *
 	 * @var array
 	 */
-	private $templateData = array();
+	protected $templateData = array();
 
 	/**
 	 * The HTML resulting from rendering the smarty template.

@@ -2,12 +2,12 @@
 
 namespace Shopware\Components\Document;
 
-use Shopware\Models\Dispatch\Dispatch;
-use Shopware\Models\Document\Document;
-use Shopware\Models\Order\Document\Document as OrderDocumentModel;
-use Shopware\Models\Order\Order as OrderModel;
-use Shopware\Models\Payment\Payment;
-use Symfony\Component\Config\Definition\Exception\Exception;
+use Shopware\Models\Dispatch\Dispatch,
+	Shopware\Models\Order\Order as OrderModel,
+	Shopware\Models\Order\Document\Type as DocumentType,
+	Shopware\Models\Order\Document\Document as OrderDocumentModel,
+	Shopware\Models\Order\Number,
+	Shopware\Models\Payment\Payment;
 
 /**
  * TODO
@@ -18,13 +18,9 @@ use Symfony\Component\Config\Definition\Exception\Exception;
  */
 class Order extends Base
 {
-	/**
-	 * @var array
-	 */
-	private $data = [];
 
 	/**
-	 * @var Document
+	 * @var \Shopware\Models\Order\Document\Type
 	 */
 	private $documentType;
 
@@ -34,9 +30,9 @@ class Order extends Base
 	private $order;
 
 	/**
-	 * @var string
+	 * @var \Shopware\Models\Order\Document\Document
 	 */
-	private $hash;
+	private $orderDocument;
 
 	/**
 	 * @var Shopware_Components_Config
@@ -63,19 +59,26 @@ class Order extends Base
 	}
 
 	/**
-	 * @param Document $type
+	 * @param int $typeId
 	 */
-	public function setDocumentType(Document $type)
+	public function setDocumentTypeId($typeId)
 	{
-		$this->documentType = $type;
-
-		if ( $this->documentType->getNumbers()) {
-			$this->__set('documentNumber', $this->documentType->getNumbers());
+		$this->documentType = $this->modelManager->find('\Shopware\Models\Order\Document\Type', $typeId);
+		if ($this->documentType === null) {
+			throw new \Exception('Document type with ID ' . $typeId . ' not found.');
 		}
 	}
 
 	/**
-	 * @param OrderModel $order
+	 * @param \Shopware\Models\Order\Document\Type $type
+	 */
+	public function setDocumentType(DocumentType $type)
+	{
+		$this->documentType = $type;
+	}
+
+	/**
+	 * @param \Shopware\Models\Order\Order $order
      */
 	public function setOrder(OrderModel $order)
 	{
@@ -219,161 +222,95 @@ class Order extends Base
 	 */
 	public function savePDF()
 	{
-		// new Order\Documents();
+		if ($this->orderDocument !== null) {
+			throw new \Exception('The order document has already been saved to ' . $this->getFilePath());
+		} else if ($this->order === null) {
+			throw new \Exception('No order set. Use \'renderPDF\' instead and save it manually.');
+		} else if ($this->documentType === null) {
+			throw new \Exception('No document type set.');
+		}
+
+		// Check if a document number must be generated
+		$documentNumberName = $this->documentType->getNumbers();
+		if ($this->templateData['documentNumber'] === null && !empty($documentNumberName)) {
+			// Determine the next document number in a transaction to prevent numbers from being used twice
+			$this->templateData['documentNumber'] = $this->modelManager->transactional(function($em) use ($documentNumberName) {
+				// Get the respective order number
+				$number = $em->getRepository('\Shopware\Models\Order\Number')->findOneBy(array(
+					'name' => $documentNumberName
+				));
+				if ($number === null) {
+					return null;
+				}
+
+				// Increase it and write it back
+				$nextNumber = $number->getNumber() + 1;
+				$number->setNumber($nextNumber);
+
+				return $nextNumber;
+			});
+		}
+
+		// Render the PDF file
+		$this->setTemplate('documents/' . $this->documentType->getTemplate());
 		$pdf = $this->renderPDF();
 
-		$path = $this->getFilePath($this->documentType->getName(), $this->generateHash());
+		// Determine total amount
 		$amount = $this->getOrderAmount();
-
-		/**
-		 * For cancellations
-		 */
-		if ($this->documentType->getId() == 4) {
+		if ($this->documentType->getId() === 4) {
+			// Cancellations have negative amounts
 			$amount *= -1;
 		}
 
-		$this->saveDocumentInDatabase($amount);
+		// Save the document information
+		$hash = md5(uniqid(rand()));
+		$this->orderDocument = new OrderDocumentModel();
+		$this->orderDocument->setDate(new \DateTime());
+		$this->orderDocument->setType($this->documentType);
+		$this->orderDocument->setDocumentId($this->templateData['documentNumber']);
+		$this->orderDocument->setCustomerId($this->order->getCustomer()->getId());
+		$this->orderDocument->setOrder($this->order);
+		$this->orderDocument->setAmount($amount);
+		$this->orderDocument->setHash($hash);
+		$this->modelManager->persist($this->orderDocument);
+		$this->modelManager->flush($this->orderDocument);
 
-		$this->writePDFToDisk($path, $pdf);
+
+		// Write file to disk
+		$path = $this->getFilePath();
+		file_put_contents($path, $pdf);
 	}
 
 	public function __set($name, $value = null)
 	{
-		$this->data[$name] = $value;
+		$this->templateData[$name] = $value;
 	}
 
 	public function __get($name)
 	{
-		if (!isset($this->data['name']) || !array_key_exists($name, $this->data)) {
-			throw new \Exception('Variable ' . $name . ' not setted.');
+		if (!isset($this->templateData['name']) || !array_key_exists($name, $this->templateData)) {
+			throw new \Exception('Variable ' . $name . ' not set.');
 		}
-		return $this->data[$name];
+
+		return $this->templateData[$name];
 	}
 
 	/**
-	 * Generates the document hash
 	 * @return string
 	 */
-	private function generateHash()
+	private function getFilePath()
 	{
-		$this->hash = md5(uniqid(rand()));
-		return $this->hash;
+		return Shopware()->OldPath() . 'files/documents/' . $this->orderDocument->getHash() . '.pdf';
 	}
 
 	/**
-	 * @param string $documentTypeName
-	 * @param string $hash
-	 * @return string
-	 */
-	private function getFilePath($documentTypeName, $hash)
-	{
-		return Shopware()->OldPath() . 'files/documents/' . $documentTypeName . '/' . $hash . '.pdf';
-	}
-
-	/**
-	 * Helper function to get the correct invoice amount
+	 * Helper function to get the correct invoice amount.
+	 *
 	 * @return float
-	 * @throws \Exception
 	 */
 	private function getOrderAmount()
 	{
-		return $this->config->get('netto') == true ? round($this->order->getInvoiceAmountNet(), 2) : round($this->order->getInvoiceAmount(), 2);
+		return ($this->config->get('netto')) ? round($this->order->getInvoiceAmountNet(), 2) : round($this->order->getInvoiceAmount(), 2);
 	}
 
-	/**
-	 * @param string $numberRange
-	 * @return int
-	 */
-	private function getCurrentDocumentNumber($numberRange)
-	{
-		$number = $this->dbAdapter->fetchRow("
-            SELECT `number` as next FROM `s_order_number` WHERE `name` = ?", [$numberRange]
-		);
-
-		return $number['next'];
-	}
-
-	/**
-	 * TODO: Document attributes, change to DBAL / doctrine
-	 * @param $amount
-	 * @return int
-	 */
-	private function saveDocumentInDatabase($amount)
-	{
-		try {
-			$this->dbAdapter->beginTransaction();
-
-			//generates and saves the next document number
-			if ($this->isCancellation()) {
-				$docId = $this->getCurrentDocumentNumber($this->documentType->getNumbers());
-			} else {
-				$docId = $this->getCurrentDocumentNumber($this->documentType->getNumbers());
-				$docId = $this->increaseDocumentNumber($docId);
-				$this->saveNextDocumentNumber($this->documentType->getNumbers(), $docId);
-			}
-
-//			$orderDocumentModel = new OrderDocumentModel();
-
-			$sql = "
-               INSERT INTO s_order_documents (`date`, `type`, `userID`, `orderID`, `amount`, `docID`,`hash`)
- 	           VALUES ( NOW() , ? , ? , ?, ?, ?,?)
-        	";
-
-			$this->dbAdapter->query(
-				$sql,
-				[
-					$this->documentType->getId(),
-					$this->data['customerNumber'],
-					$this->order->getId(),
-					$amount,
-					$docId,
-					$this->hash
-				]
-			);
-		} catch(Exception $e) {
-			$this->dbAdapter->rollBack();
-			throw new Exception(
-				'Saving the order to the Database failed with following error message: ',
-				$e->getMessage()
-			);
-		}
-		$this->dbAdapter->commit();
-
-		return $this->dbAdapter->lastInsertId();
-	}
-
-	/**
-	 * @param $numberRange
-	 * @param $number
-	 */
-	private function saveNextDocumentNumber($numberRange, $number)
-	{
-		$this->dbAdapter->query("
-            UPDATE `s_order_number` SET `number` = ? WHERE `name` = ? LIMIT 1 ;",
-			[$number, $numberRange]
-		);
-	}
-
-	/**
-	 * @param $path
-	 * @param $pdf
-	 */
-	private function writePDFToDisk($path, $pdf)
-	{
-		file_put_contents($path, $pdf);
-	}
-
-	private function isCancellation()
-	{
-		return $this->documentType->getId() == 4 ? true : false;
-	}
-
-	/**
-	 * @param int $docId
-	 * @return mixed
-	 */
-	private function increaseDocumentNumber($docId)
-	{
-		return $docId++;
-	}
 }
