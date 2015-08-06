@@ -39,7 +39,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 	 *
 	 * @var string
 	 */
-	private $templateName;
+	protected $templateName;
 
 	/**
 	 * Contains all data that is passed to the template.

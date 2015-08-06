@@ -367,6 +367,16 @@ class Order extends Base
         }
     }
 
+    /** Override */
+    public function renderPDF()
+    {
+        if ($this->templateName === null) {
+            $this->setTemplate('documents/' . $this->documentType->getTemplate());
+        }
+
+        parent::renderPDF();
+    }
+
 	/**
 	 * saves the pdf on the disk and writes it to the database
 	 */
@@ -402,7 +412,6 @@ class Order extends Base
 		}
 
 		// Render the PDF file
-		$this->setTemplate('documents/' . $this->documentType->getTemplate());
 		$pdf = $this->renderPDF();
 
 		// Save the document information
