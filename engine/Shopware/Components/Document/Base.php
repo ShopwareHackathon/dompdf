@@ -171,7 +171,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 	public function generateHTML()
 	{
 		if ($this->templateName === null) {
-			throw new Exception('"templateName" not set!');
+			throw new \Exception('No template name set.');
 		}
 
 		// Render the smarty template using the template manager
