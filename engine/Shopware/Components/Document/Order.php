@@ -56,6 +56,8 @@ class Order extends Base
 		parent::__construct($modelManager, $templateManager, $themeInheritance);
 		$this->config = $config;
 		$this->dbAdapter = $dbAdapter;
+
+        $this->setDocumentDate(new \DateTime());
 	}
 
 	/**
@@ -83,10 +85,14 @@ class Order extends Base
 	public function setOrder(OrderModel $order, $shippingCostsAsPosition)
 	{
 		$this->order = $order;
-		$this->__set('customerNumber', $this->order->getCustomer()->getBilling()->getNumber());
-		$this->__set('orderNumber', $this->order->getNumber());
-		$this->__set('dispatchMethod', $this->order->getDispatch());
-		$this->__set('paymentMethod', $this->order->getPayment());
+		$this->setCustomerNumber($this->order->getCustomer()->getBilling()->getNumber());
+		$this->setOrderNumber($this->order->getNumber());
+		$this->setDispatchMethod($this->order->getDispatch());
+		$this->setPaymentMethod($this->order->getPayment());
+        $billing = $this->order->getBilling();
+        $this->setSenderAddress(Shopware()->Models()->toArray($billing));
+        $this->setReceiverAddress(Shopware()->Models()->toArray($billing));
+
         $orderTaxation = new OrderTaxation();
         $net = $this->order->getNet();
         $items = array_map(function($item) use ($orderTaxation, $net) {
@@ -279,7 +285,16 @@ class Order extends Base
 		$this->__set('dispatchMethod', $dispatchMethod);
 	}
 
-	/**
+    /**
+     * @param DateTime $documentDate
+     */
+    public function setDocumentDate(DateTime $documentDate)
+    {
+        $this->__set('documentDate', $documentDate);
+    }
+
+
+    /**
 	 * @param string $contentInfo
 	 */
 	public function setContentInfo($contentInfo)
