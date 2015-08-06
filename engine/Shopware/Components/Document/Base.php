@@ -108,7 +108,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 	public function setTemplate($name, $templateDir = null)
 	{
 		$this->templateName = $name;
-		if ($templateDir) {
+		if ($templateDir !== null) {
 			$this->templateManager->addTemplateDir($templateDir);
 		}
 	}
