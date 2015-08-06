@@ -1159,7 +1159,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         if ($documentTypeModel->isLegacy()) {
             $this->createLegacyDocument($orderId, $documentTypeId);
         } else {
-            $document = $this->get('document_factory')->getOrderInstance();
+            $document = $this->get('document_factory')->createOrderInstance();
             $document->setOrder($orderModel);
             $document->setDocumentType($documentTypeModel);
             $document->savePDF();
