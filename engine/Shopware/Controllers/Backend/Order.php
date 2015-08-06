@@ -1156,7 +1156,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
         // Legacy support
-        if ($documentTypeModel->getLegacy()) {
+        if ($documentTypeModel->isLegacy()) {
             $this->createLegacyDocument($orderId, $documentTypeId);
         } else {
             $document = $this->get('document_factory')->getOrderInstance();
