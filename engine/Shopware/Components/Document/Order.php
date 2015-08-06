@@ -117,7 +117,7 @@ class Order extends Base
         } else {
             $this->setOrderAmountNet($this->getOrderAmountNet() + ($order->getInvoiceShipping() / (100 + $taxShipping) * 100));
             if (!empty($taxShipping) && $order->getInvoiceShipping() == 0) {
-                $this->data['tax'][number_format($taxShipping, 2)] += ($order->getInvoiceShipping() / (100 + $taxShipping)) * $taxShipping;
+                $this->templateData['tax'][number_format($taxShipping, 2)] += ($order->getInvoiceShipping() / (100 + $taxShipping)) * $taxShipping;
             }
         }
 
@@ -141,7 +141,7 @@ class Order extends Base
             $shipping['articleordernumber'] = "";
             $shipping['name'] = "Versandkosten";
 
-            $this->data['items'][] = $shipping;
+            $this->templateData['items'][] = $shipping;
         }
 	}
 
