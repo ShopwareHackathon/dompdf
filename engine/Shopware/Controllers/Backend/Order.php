@@ -1158,7 +1158,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
         // Legacy support
-        if ($documentTypeModel->getLegacy()) {
+        if ($documentTypeModel->isLegacy()) {
             $this->createLegacyDocument($orderId, $documentTypeId);
         } else {
             /** @var \Shopware\Components\Document\Order $document */
@@ -1171,8 +1171,6 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
 
             $document->setDocumentType($documentTypeModel);
             $document->savePDF();
-            $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
-            $orderModel = $this->get('models')->toArray($orderModel);
         }
     }
 

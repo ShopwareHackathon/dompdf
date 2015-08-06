@@ -301,7 +301,7 @@ class Type extends ModelEntity
     /**
      * @return boolean
      */
-    public function getLegacy()
+    public function isLegacy()
     {
         return $this->legacy;
     }
@@ -313,4 +313,5 @@ class Type extends ModelEntity
     {
         $this->legacy = $legacy;
     }
+
 }
