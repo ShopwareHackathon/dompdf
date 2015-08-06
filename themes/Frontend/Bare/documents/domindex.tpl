@@ -1,3 +1,4 @@
+{namespace name="documents/index"}
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
@@ -324,36 +325,7 @@
       Seite <span class="pagenum"></span>
    </div>
 
-   <table class="table-footer" cellpadding="0" cellspacing="0" style="margin: 20px 50px 0 30px;">
-      <tr>
-         <td class="todo">Demo Shop GmbH</td>
-         <td class="todo">Bankverbindung</td>
-         <td class="todo">AGB</td>
-         <td class="todo">Geschäftsführung</td>
-      </tr>
-      <tr>
-         <td class="todo" valign="top">
-            Steuer-Nr: DE 900 400 200 <br>
-            UST-ID: DE 100 400 200 <br>
-            Finanzamt Musterstadt
-         </td>
-         <td class="todo" valign="top">
-            Sparkasse Musterstadt <br>
-            IBAN: D3004005001003442353 <br>
-            BIC: WELADEXX
-         </td>
-         <td class="todo" valign="top">
-            Gerichtsstand ist Musterstadt <br>
-            Erfüllungsort Musterstadt <br>
-            Siehe auch mustershop.de/agb
-         </td>
-         <td class="todo" valign="top">
-            Frank Mustermann <br>
-            Sabine Musterfrau <br>
-            Franz Musterkomisch
-         </td>
-      </tr>
-   </table>
+   {$Footer}
 
 </div>
 
@@ -366,8 +338,8 @@
          </div>
       </div>
       <div class="col-6">
-         <div class="todo branding">
-            <img src="documents/img/sw_logo.png" width="200" alt="shopware AG">
+         <div class="branding">
+            {$Logo}
          </div>
       </div>
    </div>
@@ -389,7 +361,7 @@
             {$receiverAddress.firstName} {$receiverAddress.lastName} <br>
             {$receiverAddress.street} <br>
             {$receiverAddress.zipCode} {$receiverAddress.city} <br>
-            <span class="todo">NRW - Germany</span> <br>
+            {if $billingState}{$billingState} - {/if}{$billingCountry}</span> <br>
          </div>
 
       </div>
@@ -397,22 +369,13 @@
    </div>
    <div class="col-6">
 
-      <div class="todo box-colored">
-
-         shopware AG <br>
-         Eggeroder Str. 6 <br>
-         48624 Schöppingen <br>
-
-         Fon: 01234 / 56789 <br>
-         Fax: 01234 / 56780 <br>
-         E-Mail: info@demo.de <br>
-         Web: www.demo.de
-
+      <div class="box-colored">
+         {$Header_Box_Right}
       </div>
 
       <div class="text-docinfo">
-         Rechnungsnummer: {$documentNumber} <br>
-         Bestellnummer: {$orderNumber} <br>
+         {s name="DocumentIndexInvoiceNumber"}{/s} {$documentNumber} <br>
+         {s name="DocumentIndexOrderID"}{/s} {$orderNumber} <br>
          Seite <span class="pagenum"></span>
       </div>
 
@@ -448,7 +411,7 @@
 
          <table cellpadding="0" cellspacing="0" width="100%">
             <tr>
-               <td class="text-right">Gesamtkosten Netto:</td>
+               <td class="text-right">{s name="DocumentIndexTotalNet"}{/s}</td>
                <td class="text-right">{$orderAmountNet|currency}</td>
             </tr>
             {foreach from=$tax item=taxAmount key=taxValue}
@@ -458,7 +421,7 @@
             </tr>
             {/foreach}
             <tr>
-               <td style="text-align: right; font-weight: bold;" class="text-color">Gesamtkosten:</td>
+               <td style="text-align: right; font-weight: bold;" class="text-color">{s name="DocumentIndexTotal"}{/s}</td>
                <td style="text-align: right; font-weight: bold;" class="text-color">{$orderAmount|currency}</td>
             </tr>
          </table>
@@ -470,24 +433,28 @@
 <div class="text-meta">
 
    <div class="col-6">
-      <strong>Gewählte Versandart:</strong> <span class="todo">Standard Versand</span> <br>
+      <strong>{s name="DocumentIndexSelectedDispatch"}{/s}</strong> {$dispatchMethod} <br>
    </div>
    <div class="col-6 text-right">
-      <strong>Gewählte Zahlungsart:</strong> <span class="todo">Rechnung</span> <br>
+      <strong>{s name="DocumentIndexSelectedPayment"}{/s}</strong> {$paymentMethod} <br>
    </div>
 
    <div class="clear"></div>
 
-   <strong>Kommentar:</strong> <span class="todo">Hier steht der Kunden Kommentar...</span>
+   {if $customerComment}
+   <strong>Kommentar:</strong> {$customerComment}
+   {/if}
 
    <br>
 
-   <strong>Information:</strong> <span class="todo">Die Ware bleibt bis zur vollständigen Bezahlung unser Eigentum.</span> <br>
+   {if $Content_Info}
+   <strong>Information:</strong> {$Content_Info} <br>
+   {/if}
 
 </div>
 
 <div class="text-thanks">
-   <span class="todo">Vielen Dank für Ihre Bestellung</span>
+   <span>Vielen Dank für Ihre Bestellung</span>
 </div>
 
 </body>

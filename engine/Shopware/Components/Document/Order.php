@@ -50,6 +50,11 @@ class Order extends Base
 	 */
 	private $translator;
 
+    /**
+     * @var Shopware\Models\Shop\Shop
+     */
+    private $shop;
+
 	/**
 	 * @param Shopware\Components\Model\ModelManager  $modelManager
 	 * @param Enlight_Template_Manager                $templateManager
@@ -65,6 +70,7 @@ class Order extends Base
 		$this->translator = new Shopware_Components_Translation();
 
         $this->setDocumentDate(new \DateTime());
+        $this->setShop(Shopware()->Shop());
 	}
 
 	/**
@@ -94,11 +100,12 @@ class Order extends Base
 		$this->order = $order;
 		$this->setCustomerNumber($this->order->getCustomer()->getBilling()->getNumber());
 		$this->setOrderNumber($this->order->getNumber());
-		$this->setDispatchMethod($this->order->getDispatch());
-		$this->setPaymentMethod($this->order->getPayment());
+		 $this->setCustomerComment($this->order->getCustomerComment());
         $billing = $this->order->getBilling();
-        $this->setSenderAddress(Shopware()->Models()->toArray($billing));
+        $this->setSenderAddress(Shopware()->Models()->toArray($billing)); // TODO
         $this->setReceiverAddress(Shopware()->Models()->toArray($billing));
+        $this->__set('billingState', $billing->getState ? $billing->getState()->getName() : null);
+        $this->__set('billingCountry', $billing->getCountry()->getName());
 
         $orderTaxation = new OrderTaxation();
         $net = $this->order->getNet();
@@ -169,6 +176,9 @@ class Order extends Base
 
             $this->templateData['items'][] = $shipping;
         }
+
+        $this->setShop($order->getLanguageSubShop());
+        $this->loadElements();
 	}
 
 	/**
@@ -290,17 +300,17 @@ class Order extends Base
 	}
 
 	/**
-	 * @param Payment $paymentMethod
+	 * @param string $paymentMethod
 	 */
-	public function setPaymentMethod(Payment $paymentMethod)
+	public function setPaymentMethod($paymentMethod)
 	{
 		$this->__set('paymentMethod', $paymentMethod);
 	}
 
 	/**
-	 * @param Dispatch $dispatchMethod
+	 * @param string $dispatchMethod
 	 */
-	public function setDispatchMethod(Dispatch $dispatchMethod)
+	public function setDispatchMethod($dispatchMethod)
 	{
 		$this->__set('dispatchMethod', $dispatchMethod);
 	}
@@ -329,6 +339,33 @@ class Order extends Base
 	{
 		$this->__set('contentInfo', $footer);
 	}
+
+    /**
+     * Sets the shop for which the document should be created. This is needed for translation purposes.
+     *
+     * @param \Shopware\Models\Shop\Shop $shop
+     */
+    public function setShop($shop)
+    {
+        $this->shop = $shop;
+    }
+
+    /**
+     * Loads the element values (parts of the document that the user can set and also translate via the backend).
+     */
+    public function loadElements() {
+        foreach(array('Header_Box_Right', 'Logo', 'Content_Info', 'Footer') as $elementName) {
+            $value = $this->translateContentValue($elementName);
+            if (is_null($value)) {
+                $element = $this->modelManager->getRepository('Shopware\Models\Document\Element')->findBy(array('name' => $elementName, 'documentId' => $this->documentType->getId()));
+                if (!empty($element)) {
+                    $value = $element[0]->getValue();
+                }
+            }
+
+            $this->__set($elementName, $value);
+        }
+    }
 
 	/**
 	 * saves the pdf on the disk and writes it to the database
@@ -439,7 +476,7 @@ class Order extends Base
 	private function translateContentValue($name)
 	{
 		$documentTypeId = $this->documentType->getId();
-		$translation = $this->translator->read($this->order->getLanguageSubShop()->getId(), 'documents');
+		$translation = $this->translator->read($this->shop->getId(), 'documents');
 		if (isset($translation[$documentTypeId]) && isset($translation[$documentTypeId][$name . '_Value'])) {
 			return $translation[$documentTypeId][$name . '_Value'];
 		}
