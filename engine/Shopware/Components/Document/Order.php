@@ -366,7 +366,7 @@ class Order extends Base
 
 	public function __get($name)
 	{
-		if (!isset($this->templateData['name']) || !array_key_exists($name, $this->templateData)) {
+		if (!isset($this->templateData[$name]) || !array_key_exists($name, $this->templateData)) {
 			throw new \Exception('Variable ' . $name . ' not set.');
 		}
 
