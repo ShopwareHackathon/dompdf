@@ -157,8 +157,9 @@ Ext.define('Shopware.apps.Config.view.form.Document', {
 					handler: function(){
 						var detailPanel = me.down('config-base-detail'),
 							values = detailPanel.getValues();
-						var previewPageBreak = values['booleanPageBreak'] ? '&pagebreak=on' : '';
-						window.open('{url controller=document}?typ=' + values.id + '&preview=1&sampleData=1' + previewPageBreak);
+						var previewPageBreak = values['booleanPageBreak'] ? '&pagebreak=on' : '',
+							useLegacyTemplate = values['legacy'] ? '&useLegacyTemplate=1' : '';
+						window.open('{url controller=document}?typ=' + values.id + '&preview=1' + previewPageBreak + useLegacyTemplate);
 					}
 				},{
 					xtype: 'config-element-button',

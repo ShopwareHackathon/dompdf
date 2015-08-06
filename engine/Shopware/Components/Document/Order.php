@@ -85,6 +85,14 @@ class Order extends Base
 	}
 
 	/**
+	 * @return \Shopware\Models\Order\Document\Type
+	 */
+	public function getDocumentType()
+	{
+		return $this->documentType;
+	}
+
+	/**
 	 * @param \Shopware\Models\Order\Document\Type $type
 	 */
 	public function setDocumentType(DocumentType $type)

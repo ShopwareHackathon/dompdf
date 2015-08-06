@@ -33,38 +33,24 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
      */
     public function indexAction()
     {
-        $id = $this->Request()->id;
-        $netto = $this->Request()->ust_free;
-        if ($netto == "false") {
-            $netto = false;
-        }
-        $typ = $this->Request()->typ;
-        $voucher = $this->Request()->voucher;
-        $date = $this->Request()->date;
-        $delivery_date = $this->Request()->delivery_date;
-        $bid = $this->Request()->bid;
-        $this->View()->setTemplate();
-        $document = Shopware_Components_Document::initDocument(
-            $id,
-            $typ,
-            array(
-                "netto" => $netto,
-                "bid" => $bid,
-                "voucher" => $voucher,
-                "date" => $date,
-                "delivery_date" => $delivery_date,
-                "shippingCostsAsPosition"=>true,
-                "_renderer"=>"pdf",
-                "_preview" => $this->Request()->preview,
-                "_previewForcePagebreak" => $this->Request()->pagebreak,
-                "_previewSample" => $this->Request()->sampleData,
-                "_compatibilityMode" => $this->Request()->compatibilityMode,
-                "docComment" => utf8_decode($this->Request()->docComment),
-                "forceTaxCheck" => $this->Request()->forceTaxCheck
-            )
-        );
+        if ((bool)$this->Request()->useLegacyTemplate) {
+            $this->createLegacyDocument($this->Request()->preview);
+        } else {
+            // Init document component
+            $documentTypeId = $this->Request()->typ;
+            $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
+            $documentType = $document->getDocumentType();
+            $document->setTemplate('documents/' . $documentType->getTemplate());
 
-        $document->render();
+            // TODO: Set the sample data
+            $document->setTemplateData(array(
+                'customerComment' => 'TEST 1234'
+            ));
+
+            // Render and respond with document
+            $document->renderPDF();
+            $document->respondWithPDF($documentType->getName() . '.pdf');
+        }
     }
 
     /**
@@ -92,4 +78,34 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
             Shopware()->Db()->query($sqlDuplicate, array($targetID["id"], $id));
         }
     }
+
+    /**
+     * Creates and responds a document using the legacy document component.
+     *
+     * @param boolean $useSampleData
+     */
+    private function createLegacyDocument($useSampleData = true) {
+        $document = Shopware_Components_Document::initDocument(
+            $this->Request()->id,
+            $this->Request()->typ,
+            array(
+                "netto" => ($this->Request()->ust_free != "false"),
+                "bid" => $this->Request()->bid,
+                "voucher" => $this->Request()->voucher,
+                "date" => $this->Request()->date,
+                "delivery_date" => $this->Request()->delivery_date,
+                "shippingCostsAsPosition" => true,
+                "_renderer" => "pdf",
+                "_preview" => $this->Request()->preview,
+                "_previewForcePagebreak" => $this->Request()->pagebreak,
+                "_previewSample" => $useSampleData,
+                "_compatibilityMode" => $this->Request()->compatibilityMode,
+                "docComment" => utf8_decode($this->Request()->docComment),
+                "forceTaxCheck" => $this->Request()->forceTaxCheck
+            )
+        );
+        $this->View()->setTemplate();
+        $document->render();
+    }
+
 }
