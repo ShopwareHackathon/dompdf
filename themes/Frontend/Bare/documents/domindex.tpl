@@ -318,8 +318,6 @@
 
 <body>
 
-{debug}
-
 <div id="footer">
 
    <div class="page-info">
@@ -433,9 +431,9 @@
       <td class="text-right">Einzelpreis</td>
       <td class="text-right">Gesamt</td>
    </tr>
-   {foreach from=$items item=item key=i}
+   {foreach $items as $item}
    <tr>
-      <td>{$i+1}</td>
+      <td>{$item@iteration}</td>
       <td>{$item.articleNumber}</td>
       <td class="text-color">{$item.articleName}</td>
       <td class="text-center">{$item.quantity}</td>
