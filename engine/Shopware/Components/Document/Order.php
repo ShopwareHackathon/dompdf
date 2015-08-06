@@ -333,16 +333,10 @@ class Order extends Base
 		$this->setTemplate('documents/' . $this->documentType->getTemplate());
 		$pdf = $this->renderPDF();
 
-		// Determine total amount
-		$amount = $this->getOrderAmount();
-		if ($this->documentType->getId() === 4) {
-			// Cancellations have negative amounts
-			$amount *= -1;
-		}
-
 		// Save the document information
 		$hash = md5(uniqid(rand()));
 		$documentNumber = ($this->templateData['documentNumber'] !== null) ? $this->templateData['documentNumber'] : '';
+		$amount = ($this->getOrderAmount() !== null) ? $this->getOrderAmount() : 0;
 		$this->orderDocument = new OrderDocumentModel();
 		$this->orderDocument->setDate(new \DateTime());
 		$this->orderDocument->setType($this->documentType);
