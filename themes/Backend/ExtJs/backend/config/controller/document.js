@@ -80,6 +80,9 @@ Ext.define('Shopware.apps.Config.controller.Document', {
 					});
 				}
 			},
+			'config-base-detail checkbox[name=legacy]': {
+				change: me.onLegacyChange
+			},
 			'config-base-detail combo[name=elements]': {
 				change: me.onSelectElement
 			}
@@ -87,6 +90,37 @@ Ext.define('Shopware.apps.Config.controller.Document', {
 
         me.callParent(arguments);
     },
+
+	onLegacyChange: function(checkbox, showLegacy) {
+		var legacyElementSelectors = [
+			'*[name$=left]',
+			'*[name$=right]',
+			'*[name$=top]',
+			'*[name$=bottom]',
+			'*[name$=pageBreak]',
+			'*[name$=booleanPageBreak]',
+			'container button[name$=viewStructure]'
+		];
+		var	fieldset = this.getDetail().down('fieldset[name=baseFieldSet]');
+		for (var i = 0; i < legacyElementSelectors.length; i++) {
+			if (showLegacy) {
+				// Show the legacy settings
+				fieldset.down(legacyElementSelectors[i]).show();
+			} else {
+				// Hide the legacy settings
+				fieldset.down(legacyElementSelectors[i]).hide();
+			}
+		};
+
+		// Show/hide the currently active style field
+		if (this.activeStyleField !== undefined) {
+			if (showLegacy) {
+				this.activeStyleField.show();
+			} else {
+				this.activeStyleField.hide();
+			}
+		}
+	},
 
 	onSelectElement: function(combo, newValue, oldValue){
 		//If there is no new value selected, so the event got fired otherwise
@@ -120,12 +154,15 @@ Ext.define('Shopware.apps.Config.controller.Document', {
 
 		//Show the dynamical fields and fill them
 		newContentField.show();
-		var documentRecord = me.getDetail().getForm()._record;
-		if (documentRecord.get('legacy')) {
+		var showLegacy = me.getDetail().getForm().findField('legacy').getValue();
+		if (showLegacy) {
 			newStyleField.show();
 		}
 		newContentField.setValue(newRecord.get('value'));
 		newStyleField.setValue(newRecord.get('style'));
+
+		// Save the new style field for later use
+		me.activeStyleField = newStyleField;
 	}
 
 });

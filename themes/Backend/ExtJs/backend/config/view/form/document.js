@@ -84,6 +84,7 @@ Ext.define('Shopware.apps.Config.view.form.Document', {
 				'</div>'
         return [{
 			xtype: 'fieldset',
+			name: 'baseFieldSet',
 			defaults: {
 				anchor: '100%',
 				labelWidth: 250,
@@ -111,39 +112,40 @@ Ext.define('Shopware.apps.Config.view.form.Document', {
 			},{
 				name: 'legacy',
 				xtype: 'checkbox',
-				fieldLabel: '{s name=document/detail/legacy_label}Legacy{/s}',
-				listeners: {
-					'change': function () {
-						console.log("test");
-					}
-				}
+				fieldLabel: '{s name=document/detail/legacy_label}Legacy{/s}'
 			},{
 				name: 'left',
                 xtype: 'config-element-number',
-				fieldLabel: '{s name=document/detail/left_label}Spacing left (mm){/s}'
+				fieldLabel: '{s name=document/detail/left_label}Spacing left (mm){/s}',
+				hidden: true
 			},{
 				name: 'right',
                 xtype: 'config-element-number',
-				fieldLabel: '{s name=document/detail/right_label}Spacing right (mm){/s}'
+				fieldLabel: '{s name=document/detail/right_label}Spacing right (mm){/s}',
+				hidden: true
 			},{
 				name: 'top',
                 xtype: 'config-element-number',
-				fieldLabel: '{s name=document/detail/top_label}Spacing top (mm){/s}'
+				fieldLabel: '{s name=document/detail/top_label}Spacing top (mm){/s}',
+				hidden: true
 			},{
 				name: 'bottom',
                 xtype: 'config-element-number',
-				fieldLabel: '{s name=document/detail/bottom_label}Spacing bottom (mm){/s}'
+				fieldLabel: '{s name=document/detail/bottom_label}Spacing bottom (mm){/s}',
+				hidden: true
 			},{
 				name: 'pageBreak',
                 xtype: 'config-element-number',
-				fieldLabel: '{s name=document/detail/pagebreak_label}Articles per page{/s}'
+				fieldLabel: '{s name=document/detail/pagebreak_label}Articles per page{/s}',
+				hidden: true
 			},{
                 xtype: 'config-element-boolean',
 				name: 'booleanPageBreak',
 				fieldLabel: '{s name=document/detail/booleanpagebreak_label}Pagination{/s}',
 				style: {
 					marginTop: '20px'
-				}
+				},
+				hidden: true
 			},{
 				xtype: 'container',
 				layout: 'hbox',
@@ -166,6 +168,8 @@ Ext.define('Shopware.apps.Config.view.form.Document', {
 					},
 					iconCls: 'sprite-document-template',
 					text: '{s name=document/detail/preview_structure}View structure{/s}',
+					name: 'viewStructure',
+					hidden: true,
 					handler: function(){
 						Ext.create('Ext.window.Window',{
 							title: 'Structure',
