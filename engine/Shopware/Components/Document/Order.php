@@ -70,7 +70,7 @@ class Order extends Base
 		$this->translator = new Shopware_Components_Translation();
 
         $this->setDocumentDate(new \DateTime());
-        $this->setShop(Shopware()->Shop());
+        $this->setShop($this->modelManager->getRepository('\Shopware\Models\Shop\Shop')->getDefault());
 	}
 
 	/**
