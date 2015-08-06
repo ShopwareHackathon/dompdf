@@ -120,7 +120,10 @@ Ext.define('Shopware.apps.Config.controller.Document', {
 
 		//Show the dynamical fields and fill them
 		newContentField.show();
-		newStyleField.show();
+		var documentRecord = me.getDetail().getForm()._record;
+		if (documentRecord.get('legacy')) {
+			newStyleField.show();
+		}
 		newContentField.setValue(newRecord.get('value'));
 		newStyleField.setValue(newRecord.get('style'));
 	}
