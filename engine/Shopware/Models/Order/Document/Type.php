@@ -107,6 +107,12 @@ class Type extends ModelEntity
     private $pageBreak;
 
     /**
+     * @var boolean $legacy
+     * @ORM\Column(name="legacy", type="integer", nullable=false)
+     */
+    private $legacy;
+
+    /**
      * Get id
      *
      * @return integer
@@ -290,5 +296,21 @@ class Type extends ModelEntity
     public function getPageBreak()
     {
         return $this->pageBreak;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function getLegacy()
+    {
+        return $this->legacy;
+    }
+
+    /**
+     * @param boolean $legacy
+     */
+    public function setLegacy($legacy)
+    {
+        $this->legacy = $legacy;
     }
 }
