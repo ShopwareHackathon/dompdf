@@ -1162,7 +1162,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             $this->createLegacyDocument($orderId, $documentTypeId);
         } else {
             /** @var \Shopware\Components\Document\Order $document */
-            $document = $this->get('document_factory')->createOrderInstance();
+            $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
 
             $surcharge = $orderModel->getDispatch()->getSurchargeCalculation();
             $shippingCostsAsPosition = ($surcharge == 3) ? true : false;

@@ -94,9 +94,11 @@ class Factory
 	/**
 	 * @return Shopware\Components\Document\Order
 	 */
-	public function createOrderInstance()
+	public function createOrderInstance($documentTypeId)
 	{
-		return $this->createInstance(self::DOCUMENT_COMPONENT_TYPE_ORDER);
+		$instance = $this->createInstance(self::DOCUMENT_COMPONENT_TYPE_ORDER);
+        $instance->setDocumentTypeId($documentTypeId);
+        return $instance;
 	}
 
 }
