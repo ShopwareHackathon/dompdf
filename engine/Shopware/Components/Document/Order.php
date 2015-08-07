@@ -36,12 +36,12 @@ class Order extends Base
 	private $orderDocument;
 
 	/**
-	 * @var Shopware_Components_Config
+	 * @var \Shopware_Components_Config
 	 */
 	private $config;
 
 	/**
-	 * @var Enlight_Components_Db_Adapter_Pdo_Mysql
+	 * @var \Enlight_Components_Db_Adapter_Pdo_Mysql
 	 */
 	private $dbAdapter;
 
@@ -51,7 +51,7 @@ class Order extends Base
 	private $translator;
 
     /**
-     * @var Shopware\Models\Shop\Shop
+     * @var \Shopware\Models\Shop\Shop
      */
     private $shop;
 
@@ -325,9 +325,9 @@ class Order extends Base
 	}
 
     /**
-     * @param DateTime $documentDate
+     * @param \DateTime $documentDate
      */
-    public function setDocumentDate(DateTime $documentDate)
+    public function setDocumentDate(\DateTime $documentDate)
     {
         $this->__set('documentDate', $documentDate);
     }

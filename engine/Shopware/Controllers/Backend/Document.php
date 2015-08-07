@@ -21,6 +21,7 @@
  * trademark license. Therefore any rights, title and interest in
  * our trademarks remain entirely with us.
  */
+use Shopware\Components\Document\Order;
 
 /**
  * Shopware document / pdf controller
@@ -38,13 +39,14 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
         } else {
             // Init document component
             $documentTypeId = $this->Request()->typ;
+            /** @var Shopware\Components\Document\Order $document */
             $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
             $documentType = $document->getDocumentType();
             $document->setTemplate('documents/' . $documentType->getTemplate());
             $document->loadElements();
 
             // TODO: Set the sample data
-
+            $this->setPreviewDemoData($document);
             // Render and respond with document
             $document->renderPDF();
             $document->respondWithPDF($documentType->getName() . '.pdf');
@@ -104,6 +106,59 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
         );
         $this->View()->setTemplate();
         $document->render();
+    }
+
+    /**
+     * @param Order $document
+     * @return Order
+     */
+    private function setPreviewDemoData($document)
+    {
+        $document->setCustomerNumber(12345);
+        $document->setOrderNumber('10000');
+        $document->setContentInfo('This is a  test content info just for the preview of your template.');
+        $document->setOrderAmount(299.99);
+        $document->setOrderAmountNet(202.33);
+        $document->setCustomerComment('This is the customer comment.');
+        $document->setDocumentDate(new DateTime());
+        $document->setDocumentNumber('9999999');
+
+        $document->setReceiverAddress([
+            'company' => 'Demo GmbH',
+            'firstName' => 'Max',
+            'lastName' => 'Exampleman',
+            'street' => 'Examplestreet 666',
+            'zipCode' => '48565',
+            'city' => 'dompdf City'
+        ]);
+
+        $document->setItems(
+            [
+                [
+                    'name' => 'Test product',
+                    'amount' => 150,
+                    'amountNet' => 130,
+                    'price' => 25,
+                    'quantity' => 6
+                ],
+                [
+                    'name' => 'Football',
+                    'amount' => 20.99,
+                    'amountNet' => 10,
+                    'quantity' => 1,
+                    'price' => 20.99
+                ],
+                [
+                    'name' => 'Discount',
+                    'amount' => -10,
+                    'amountNet' => -10,
+                    'price' => -10,
+                    'quantity' => 1
+                ]
+            ],
+            false
+        );
+        return $document;
     }
 
 }
