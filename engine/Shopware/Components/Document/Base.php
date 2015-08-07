@@ -88,6 +88,7 @@ class Base extends Enlight_Class implements Enlight_Hook
 		$this->dompdf = new Dompdf();
 		$this->dompdf->setPaper('A4', 'portrait');
         $this->dompdf->getOptions()->setIsRemoteEnabled(true);
+        $this->dompdf->getOptions()->setIsCssFloatEnabled(true);
 
 		// Initialize template manager (Smarty)
 		$this->templateManager = $templateManager; // clone ...?
