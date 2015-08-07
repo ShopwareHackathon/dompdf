@@ -5,41 +5,12 @@
    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
    <title>Demo Rechnung</title>
    <style type="text/css">
-
-      @font-face {
-         font-family: 'Open Sans';
-         font-style: normal;
-         font-weight: 300;
-         src: local('Open Sans Light'), local('OpenSans-Light'), url(http://fonts.gstatic.com/s/opensans/v13/DXI1ORHCpsQm3Vp6mXoaTZS3E-kSBmtLoNJPDtbj2Pk.ttf) format('truetype');
-      }
-      @font-face {
-         font-family: 'Open Sans';
-         font-style: normal;
-         font-weight: 400;
-         src: local('Open Sans'), local('OpenSans'), url(http://fonts.gstatic.com/s/opensans/v13/cJZKeOuBrn4kERxqtaUH3SZ2oysoEQEeKwjgmXLRnTc.ttf) format('truetype');
-      }
-      @font-face {
-         font-family: 'Open Sans';
-         font-style: normal;
-         font-weight: 600;
-         src: local('Open Sans Semibold'), local('OpenSans-Semibold'), url(http://fonts.gstatic.com/s/opensans/v13/MTP_ySUJH_bn48VBG8sNSpS3E-kSBmtLoNJPDtbj2Pk.ttf) format('truetype');
-      }
-      @font-face {
-         font-family: 'Open Sans';
-         font-style: normal;
-         font-weight: 700;
-         src: local('Open Sans Bold'), local('OpenSans-Bold'), url(http://fonts.gstatic.com/s/opensans/v13/k3k702ZOKiLJc3WVjuplzJS3E-kSBmtLoNJPDtbj2Pk.ttf) format('truetype');
-      }
-
       @page {
          margin: 20px 0 150px 0;
       }
 
       body {
-         /*font-family: sans-serif;*/
-
-         font-family: "Open Sans", sans-serif, Helvetica;
-
+         font-family: sans-serif, Helvetica;
          margin: 100px 0 0.5cm 0;
          text-align: justify;
       }
@@ -67,7 +38,6 @@
       }
 
       #footer {
-         /*bottom: 130px;*/
          bottom: 0;
       }
 
@@ -240,7 +210,7 @@
          padding: 15px 0;
          font-size: 18px;
          line-height: 1;
-         font-weight: 100;
+         font-weight: 300;
          text-transform: uppercase;
       }
 
@@ -321,7 +291,9 @@
       Seite <span class="pagenum"></span>
    </div>
 
-   {$Footer}
+   <div class="offset-left">
+      {$Footer}
+   </div>
 
 </div>
 
@@ -375,12 +347,11 @@
          Seite <span class="pagenum"></span>
       </div>
 
-
    </div>
 </div>
 <div style="clear: both;"></div>
 
-<table class="table-invoice" cellpadding="0" cellspacing="0" style="width: 100%; margin: 50px 0 0 0px;">
+<table class="table-invoice" cellpadding="0" cellspacing="0" style="width: 100%; margin: 50px 0 0 0;">
    <tr>
       <td>Pos.</td>
       <td>Art-Nr.</td>
