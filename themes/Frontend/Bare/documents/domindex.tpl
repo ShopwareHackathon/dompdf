@@ -271,10 +271,6 @@
          clear: both;
       }
 
-      .todo {
-         color: red !important;
-      }
-
       .text-left { text-align: left }
       .text-center { text-align: center }
       .text-right { text-align: right }
@@ -384,7 +380,7 @@
 </div>
 <div style="clear: both;"></div>
 
-<table class="todo table-invoice" cellpadding="0" cellspacing="0" style="width: 100%; margin: 50px 0 0 0px;">
+<table class="table-invoice" cellpadding="0" cellspacing="0" style="width: 100%; margin: 50px 0 0 0px;">
    <tr>
       <td>Pos.</td>
       <td>Art-Nr.</td>
