@@ -135,25 +135,31 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
         $document->setItems(
             [
                 [
-                    'name' => 'Test product',
+                    'articleName' => 'Test product',
                     'amount' => 150,
                     'amountNet' => 130,
                     'price' => 25,
-                    'quantity' => 6
+                    'quantity' => 6,
+                    'articleNumber' => 'SW10002',
+                    'tax' => 20
                 ],
                 [
-                    'name' => 'Football',
+                    'articleName' => 'Football',
                     'amount' => 20.99,
                     'amountNet' => 10,
                     'quantity' => 1,
-                    'price' => 20.99
+                    'price' => 20.99,
+                    'articleNumber' => 'SW10002',
+                    'tax' => 15
                 ],
                 [
-                    'name' => 'Discount',
+                    'articleName' => 'Discount',
                     'amount' => -10,
                     'amountNet' => -10,
                     'price' => -10,
-                    'quantity' => 1
+                    'quantity' => 1,
+                    'articleNumber' => 'SW10003',
+                    'tax' => 0
                 ]
             ],
             false
