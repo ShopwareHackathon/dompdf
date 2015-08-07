@@ -55,6 +55,11 @@ class Order extends Base
      */
     private $shop;
 
+    /**
+     * @var bool
+     */
+    private $shippingCostsAsPosition;
+
 	/**
 	 * @param Shopware\Components\Model\ModelManager  $modelManager
 	 * @param Enlight_Template_Manager                $templateManager
@@ -103,7 +108,7 @@ class Order extends Base
 	/**
 	 * @param \Shopware\Models\Order\Order $order
      */
-	public function setOrder(OrderModel $order, $shippingCostsAsPosition)
+	public function setOrder(OrderModel $order)
 	{
 		$this->order = $order;
 		$this->setCustomerNumber($this->order->getCustomer()->getBilling()->getNumber());
@@ -164,7 +169,7 @@ class Order extends Base
 
         $this->setOrderAmount($this->getOrderAmount() + $order->getInvoiceShipping());
 
-        if ($shippingCostsAsPosition && $order->getInvoiceShipping() != 0) {
+        if ($this->shippingCostsAsPosition && $order->getInvoiceShipping() != 0) {
             $shipping = array();
             $shipping['quantity'] = 1;
 
@@ -356,6 +361,19 @@ class Order extends Base
     public function setShop($shop)
     {
         $this->shop = $shop;
+    }
+
+    /**
+     * Determines if the shipping costs should have their own position on the document.
+     *
+     * @param bool $value
+     */
+    public function setShippingCostsAsPosition($value) {
+        $this->shippingCostsAsPosition = $value;
+        if ($this->order) {
+            // Update order so that the new setting is respected
+            $this->setOrder($this->order);
+        }
     }
 
     /**
