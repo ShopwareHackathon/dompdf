@@ -74,8 +74,10 @@ class Order extends Base
 		$this->dbAdapter = $dbAdapter;
 		$this->translator = new Shopware_Components_Translation();
 
+        // Default values
         $this->setDocumentDate(new \DateTime());
         $this->setShop($this->modelManager->getRepository('\Shopware\Models\Shop\Shop')->getDefault());
+        $this->setShippingCostsAsPosition(true);
 	}
 
 	/**
@@ -182,10 +184,10 @@ class Order extends Base
             }
             $shipping['price'] = $order->getInvoiceShipping();
             $shipping['amount'] = $shipping['price'];
-            $shipping["modus"] = 1;
+            $shipping["mode"] = 1;
             $shipping['amountNet'] = $shipping['netto'];
-            $shipping['articleordernumber'] = "";
-            $shipping['name'] = "Versandkosten";
+            $shipping['articleNumber'] = "";
+            $shipping['articleName'] = "Versandkosten";
 
             $this->templateData['items'][] = $shipping;
         }
