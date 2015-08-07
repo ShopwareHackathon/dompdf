@@ -248,15 +248,26 @@ class Order extends Base
 
     /**
      * @param array $items The order items
-     * @param bool $net
+     * @param boolean $net (optional, defaults to false)
      */
-	public function setItems($items, $net) {
+	public function setItems($items, $net = false) {
         $this->__set('net', $net);
         $orderItemAggregator = new OrderItemAggregator;
+        $itemData = array();
         foreach ($items as $item) {
-            $orderItemAggregator->addItem($item);
+            // Ask subscribers whether the item shall be added
+            $skipItem = $this->eventManager->notifyUntil('Shopware\Components\Document\Order_SetItem', [
+                'subject' => $this,
+                'order' => $this->order,
+                'item' => $item,
+                'aggregator' => $orderItemAggregator
+            ]);
+            if ($skipItem === null || $skipItem->getReturn() !== true) {
+                $itemData[] = $item;
+                $orderItemAggregator->addItem($item);
+            }
         }
-        $this->__set('items', $items);
+        $this->__set('items', $itemData);
         $this->setOrderAmountNet($orderItemAggregator->getAmountNet());
         $this->setOrderAmount($orderItemAggregator->getAmount());
         if (!$net) {
