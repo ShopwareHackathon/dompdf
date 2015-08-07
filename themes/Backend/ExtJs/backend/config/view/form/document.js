@@ -112,7 +112,9 @@ Ext.define('Shopware.apps.Config.view.form.Document', {
 			},{
 				name: 'legacy',
 				xtype: 'checkbox',
-				fieldLabel: '{s name=document/detail/legacy_label}Legacy{/s}'
+				fieldLabel: '{s name=document/detail/legacy_label}Use the old PDF generation{/s}',
+				helpTitle: '{s name=document/detail/legacy_help_title}Use old PDF generation{/s}',
+				helpText: '{s name=document/detail/legacy_help_text}Use the old PDF generation if you use an old PDF template. The new PDF generation uses dompdf, otherwise it will use the mpdf generation.{/s}'
 			},{
 				name: 'left',
                 xtype: 'config-element-number',
