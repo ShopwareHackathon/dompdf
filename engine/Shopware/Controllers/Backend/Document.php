@@ -39,14 +39,14 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
         } else {
             // Init document component
             $documentTypeId = $this->Request()->typ;
-            /** @var Shopware\Components\Document\Order $document */
             $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
             $documentType = $document->getDocumentType();
             $document->setTemplate('documents/' . $documentType->getTemplate());
-            $document->loadElements();
 
-            // TODO: Set the sample data
+            // Set preview contents
+            $document->loadElements();
             $this->setPreviewDemoData($document);
+
             // Render and respond with document
             $document->renderPDF();
             $document->respondWithPDF($documentType->getName() . '.pdf');
@@ -132,38 +132,36 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
             'city' => 'dompdf City'
         ]);
 
-        $document->setItems(
+        $document->setItems([
             [
-                [
-                    'articleName' => 'Test product',
-                    'amount' => 150,
-                    'amountNet' => 130,
-                    'price' => 25,
-                    'quantity' => 6,
-                    'articleNumber' => 'SW10002',
-                    'tax' => 20
-                ],
-                [
-                    'articleName' => 'Football',
-                    'amount' => 20.99,
-                    'amountNet' => 10,
-                    'quantity' => 1,
-                    'price' => 20.99,
-                    'articleNumber' => 'SW10002',
-                    'tax' => 15
-                ],
-                [
-                    'articleName' => 'Discount',
-                    'amount' => -10,
-                    'amountNet' => -10,
-                    'price' => -10,
-                    'quantity' => 1,
-                    'articleNumber' => 'SW10003',
-                    'tax' => 0
-                ]
+                'articleName' => 'Test product',
+                'amount' => 150,
+                'amountNet' => 130,
+                'price' => 25,
+                'quantity' => 6,
+                'articleNumber' => 'SW10002',
+                'tax' => 20
             ],
-            false
-        );
+            [
+                'articleName' => 'Football',
+                'amount' => 20.99,
+                'amountNet' => 10,
+                'quantity' => 1,
+                'price' => 20.99,
+                'articleNumber' => 'SW10002',
+                'tax' => 15
+            ],
+            [
+                'articleName' => 'Discount',
+                'amount' => -10,
+                'amountNet' => -10,
+                'price' => -10,
+                'quantity' => 1,
+                'articleNumber' => 'SW10003',
+                'tax' => 0
+            ]
+        ]);
+
         return $document;
     }
 
