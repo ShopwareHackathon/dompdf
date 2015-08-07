@@ -44,9 +44,6 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
             $document->loadElements();
 
             // TODO: Set the sample data
-            $document->setTemplateData(array(
-                'customerComment' => 'TEST 1234'
-            ));
 
             // Render and respond with document
             $document->renderPDF();
