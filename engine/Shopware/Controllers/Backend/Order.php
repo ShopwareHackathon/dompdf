@@ -1152,25 +1152,28 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         $orderId = $this->Request()->getParam('orderId', null);
         $documentTypeId = $this->Request()->getParam('documentType', null);
 
-        /** @var Shopware\Models\Order\Order $orderModel */
-        $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
-        /** @var Shopware\Models\Order\Document\Type $documentTypeModel */
-        $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
+        try {
+            /** @var Shopware\Models\Order\Document\Type $documentTypeModel */
+            $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
-        // Legacy support
-        if ($documentTypeModel->isLegacy()) {
-            $this->createLegacyDocument($orderId, $documentTypeId);
-        } else {
-            /** @var \Shopware\Components\Document\Order $document */
-            $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
+            $this->createDocument($orderId, $documentTypeModel);
 
-            $surcharge = $orderModel->getDispatch()->getSurchargeCalculation();
-            $shippingCostsAsPosition = ($surcharge == 3) ? true : false;
+            // Reload order so that the new document gets shown
+            $query = $this->getRepository()->getOrdersQuery(array(array('property' => 'orders.id', 'value' => $orderId)), null, 0, 1);
+            $query->setHydrationMode(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
+            $paginator = $this->getModelManager()->createPaginator($query);
+            $order = $paginator->getIterator()->getArrayCopy();
 
-            $document->setOrder($orderModel,$shippingCostsAsPosition);
-
-            $document->setDocumentType($documentTypeModel);
-            $document->savePDF();
+            $this->View()->assign(array(
+                'success' => true,
+                'data'    => $order
+            ));
+        } catch (Exception $e) {
+            $this->View()->assign(array(
+                'success' => false,
+                'data' => $this->Request()->getParams(),
+                'message' => $e->getMessage()
+            ));
         }
     }
 
@@ -1178,54 +1181,70 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
      * Internal helper function which is used from the batch function and the createDocumentAction.
      * The batch function fired from the batch window to create multiple documents for many orders.
      * The createDocumentAction fired from the detail page when the user clicks the "create Document button"
-     * @param $orderId
-     * @param $documentType
+     * @param int $orderId
+     * @param int $documentTypeId
      * @return bool
      */
-    private function createDocument($orderId, $documentType)
+    private function createDocument($orderId, $documentTypeId)
     {
-        $renderer = "pdf"; // html / pdf
-
+        /** @var Shopware\Models\Order\Order $orderModel */
+        $orderModel = $this->getModelManager()->find('Shopware\Models\Order\Order', $orderId);
+        /** @var Shopware\Models\Order\Document\Type $documentTypeModel */
+        $documentTypeModel= $this->getModelManager()->find('Shopware\Models\Order\Document\Type', $documentTypeId);
 
         $deliveryDate = $this->Request()->getParam('deliveryDate', null);
         if (!empty($deliveryDate)) {
             $deliveryDate = new \DateTime($deliveryDate);
-            $deliveryDate = $deliveryDate->format('d.m.Y');
         }
-
 
         $displayDate = $this->Request()->getParam('displayDate', null);
         if (!empty($displayDate)) {
             $displayDate = new \DateTime($displayDate);
-            $displayDate = $displayDate->format('d.m.Y');
         }
 
-        $document = Shopware_Components_Document::initDocument(
-            $orderId,
-            $documentType,
-            array(
-                'netto'                   => (bool) $this->Request()->getParam('taxFree', false),
-                'bid'                     => $this->Request()->getParam('invoiceNumber', null),
-                'voucher'                 => $this->Request()->getParam('voucher', null),
-                'date'                    => $displayDate,
-                'delivery_date'           => $deliveryDate,
-                // Don't show shipping costs on delivery note #SW-4303
-                'shippingCostsAsPosition' => (int) $documentType !== 2,
-                '_renderer'               => $renderer,
-                '_preview'                => $this->Request()->getParam('preview', false),
-                '_previewForcePagebreak'  => $this->Request()->getParam('pageBreak', null),
-                '_previewSample'          => $this->Request()->getParam('sampleData', null),
-                '_compatibilityMode'      => $this->Request()->getParam('compatibilityMode', null),
-                'docComment'              => $this->Request()->getParam('docComment', null),
-                'forceTaxCheck'           => $this->Request()->getParam('forceTaxCheck', false)
-            )
-        );
-        $document->render();
+        // Legacy support
+        if ($documentTypeModel->isLegacy()) {
+            $renderer = "pdf"; // html / pdf
 
-        if ($renderer == "html") {
-            exit;
-        } // Debu//g-Mode
+            $document = Shopware_Components_Document::initDocument(
+                $orderId,
+                $documentTypeId,
+                array(
+                    'netto'                   => (bool) $this->Request()->getParam('taxFree', false),
+                    'bid'                     => $this->Request()->getParam('invoiceNumber', null),
+                    'voucher'                 => $this->Request()->getParam('voucher', null),
+                    'date'                    => $displayDate->format('d.m.Y'),
+                    'delivery_date'           => $deliveryDate->format('d.m.Y'),
+                    // Don't show shipping costs on delivery note #SW-4303
+                    'shippingCostsAsPosition' => (int) $documentTypeId !== 2,
+                    '_renderer'               => $renderer,
+                    '_preview'                => $this->Request()->getParam('preview', false),
+                    '_previewForcePagebreak'  => $this->Request()->getParam('pageBreak', null),
+                    '_previewSample'          => $this->Request()->getParam('sampleData', null),
+                    '_compatibilityMode'      => $this->Request()->getParam('compatibilityMode', null),
+                    'docComment'              => $this->Request()->getParam('docComment', null),
+                    'forceTaxCheck'           => $this->Request()->getParam('forceTaxCheck', false)
+                )
+            );
+            $document->render();
 
+            if ($renderer == "html") {
+                exit;
+            } // Debug-Mode
+        } else {
+            /** @var \Shopware\Components\Document\Order $document */
+            $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
+
+            // Don't show shipping costs on delivery note #SW-4303
+            $document->setOrder($orderModel);
+            $document->setShippingCostsAsPosition($documentTypeId !== 2);
+
+            if (!is_null($displayDate)) {
+                $document->setDocumentDate($displayDate);
+            }
+
+            $document->savePDF();
+        }
         return true;
     }
 
@@ -1522,31 +1541,4 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         }
     }
 
-    private function createLegacyDocument($orderId, $documentTypeId)
-    {
-        try {
-            $orderId =  $this->Request()->getParam('orderId', null);
-            $documentType = $this->Request()->getParam('documentType', null);
-
-            if (!empty($orderId) && !empty($documentType)) {
-                $this->createDocument($orderId, $documentType);
-            }
-
-            $query = $this->getRepository()->getOrdersQuery(array(array('property' => 'orders.id', 'value' => $orderId)), null, 0, 1);
-            $query->setHydrationMode(\Doctrine\ORM\AbstractQuery::HYDRATE_ARRAY);
-            $paginator = $this->getModelManager()->createPaginator($query);
-            $order = $paginator->getIterator()->getArrayCopy();
-
-            $this->View()->assign(array(
-                    'success' => true,
-                    'data'    => $order
-            ));
-        } catch (Exception $e) {
-            $this->View()->assign(array(
-                    'success' => false,
-                    'data' => $this->Request()->getParams(),
-                    'message' => $e->getMessage()
-            ));
-        }
-    }
 }

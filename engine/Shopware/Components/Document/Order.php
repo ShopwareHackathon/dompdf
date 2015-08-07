@@ -55,6 +55,11 @@ class Order extends Base
      */
     private $shop;
 
+    /**
+     * @var bool
+     */
+    private $shippingCostsAsPosition;
+
 	/**
 	 * @param Shopware\Components\Model\ModelManager  $modelManager
 	 * @param Enlight_Template_Manager                $templateManager
@@ -69,8 +74,10 @@ class Order extends Base
 		$this->dbAdapter = $dbAdapter;
 		$this->translator = new Shopware_Components_Translation();
 
+        // Default values
         $this->setDocumentDate(new \DateTime());
         $this->setShop($this->modelManager->getRepository('\Shopware\Models\Shop\Shop')->getDefault());
+        $this->setShippingCostsAsPosition(true);
 	}
 
 	/**
@@ -103,7 +110,7 @@ class Order extends Base
 	/**
 	 * @param \Shopware\Models\Order\Order $order
      */
-	public function setOrder(OrderModel $order, $shippingCostsAsPosition)
+	public function setOrder(OrderModel $order)
 	{
 		$this->order = $order;
 		$this->setCustomerNumber($this->order->getCustomer()->getBilling()->getNumber());
@@ -164,7 +171,7 @@ class Order extends Base
 
         $this->setOrderAmount($this->getOrderAmount() + $order->getInvoiceShipping());
 
-        if ($shippingCostsAsPosition && $order->getInvoiceShipping() != 0) {
+        if ($this->shippingCostsAsPosition && $order->getInvoiceShipping() != 0) {
             $shipping = array();
             $shipping['quantity'] = 1;
 
@@ -177,10 +184,10 @@ class Order extends Base
             }
             $shipping['price'] = $order->getInvoiceShipping();
             $shipping['amount'] = $shipping['price'];
-            $shipping["modus"] = 1;
+            $shipping["mode"] = 1;
             $shipping['amountNet'] = $shipping['netto'];
-            $shipping['articleordernumber'] = "";
-            $shipping['name'] = "Versandkosten";
+            $shipping['articleNumber'] = "";
+            $shipping['articleName'] = "Versandkosten";
 
             $this->templateData['items'][] = $shipping;
         }
@@ -228,14 +235,6 @@ class Order extends Base
 	public function setOrderNumber($orderNumber)
 	{
 		$this->__set('orderNumber', $orderNumber);
-	}
-
-	/**
-	 * @var \DateTime $date
-	 */
-	public function setDate(\DateTime $date)
-	{
-		$this->__set('date', $date);
 	}
 
 	/**
@@ -359,6 +358,19 @@ class Order extends Base
     }
 
     /**
+     * Determines if the shipping costs should have their own position on the document.
+     *
+     * @param bool $value
+     */
+    public function setShippingCostsAsPosition($value) {
+        $this->shippingCostsAsPosition = $value;
+        if ($this->order) {
+            // Update order so that the new setting is respected
+            $this->setOrder($this->order);
+        }
+    }
+
+    /**
      * Loads the element values (parts of the document that the user can set and also translate via the backend).
      */
     public function loadElements() {
@@ -382,7 +394,7 @@ class Order extends Base
             $this->setTemplate('documents/' . $this->documentType->getTemplate());
         }
 
-        parent::renderPDF();
+        return parent::renderPDF();
     }
 
 	/**
