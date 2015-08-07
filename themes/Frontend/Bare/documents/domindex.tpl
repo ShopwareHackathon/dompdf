@@ -358,8 +358,8 @@
       <td>Bezeichnung</td>
       <td class="text-center">Anz.</td>
       <td class="text-center">MwSt.</td>
-      <td class="text-right">Einzelpreis</td>
-      <td class="text-right">Gesamt</td>
+      <td class="text-right">{if $net}{s name="DocumentIndexHeadNet"}{/s}{else}{s name="DocumentIndexHeadPrice"}{/s}{/if}</td>
+      <td class="text-right">{if $net}{s name="DocumentIndexHeadNetAmount"}{/s}{else}{s name="DocumentIndexHeadAmount"}{/s}{/if}</td>
    </tr>
    {foreach $items as $item}
    <tr>
@@ -368,8 +368,8 @@
       <td class="text-color">{$item.articleName}</td>
       <td class="text-center">{$item.quantity}</td>
       <td class="text-center">{$item.tax}%</td>
-      <td class="text-right">{$item.price|currency}</td>
-      <td class="text-right">{$item.amount|currency}</td>
+      <td class="text-right">{if $net}{$item.net|currency}{else}{$item.price|currency}{/if}</td>
+      <td class="text-right">{if $net}{$item.amountNet|currency}{else}{$item.amount|currency}{/if}</td>
    </tr>
    {/foreach}
    <tr class="footer">
@@ -414,8 +414,12 @@
 
    <br>
 
+   {if $documentComment}
+   <strong>Information:</strong> {$documentComment} <br>
+   {/if}
+
    {if $Content_Info}
-   <strong>Information:</strong> {$Content_Info} <br>
+   {$Content_Info}
    {/if}
 
 </div>

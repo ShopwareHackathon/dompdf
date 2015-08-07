@@ -1202,6 +1202,8 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             $displayDate = new \DateTime($displayDate);
         }
 
+        $documentComment = $this->Request()->getParam('docComment', null);
+
         // Legacy support
         if ($documentTypeModel->isLegacy()) {
             $renderer = "pdf"; // html / pdf
@@ -1222,7 +1224,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
                     '_previewForcePagebreak'  => $this->Request()->getParam('pageBreak', null),
                     '_previewSample'          => $this->Request()->getParam('sampleData', null),
                     '_compatibilityMode'      => $this->Request()->getParam('compatibilityMode', null),
-                    'docComment'              => $this->Request()->getParam('docComment', null),
+                    'docComment'              => $documentComment,
                     'forceTaxCheck'           => $this->Request()->getParam('forceTaxCheck', false)
                 )
             );
@@ -1242,6 +1244,7 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             if (!is_null($displayDate)) {
                 $document->setDocumentDate($displayDate);
             }
+            $document->setDocumentComment($documentComment);
 
             $document->savePDF();
         }
