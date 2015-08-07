@@ -63,13 +63,14 @@ class Order extends Base
 	/**
 	 * @param Shopware\Components\Model\ModelManager  $modelManager
 	 * @param Enlight_Template_Manager                $templateManager
+	 * @param Enlight_Event_EventManager              $eventManager
 	 * @param Shopware\Components\Theme\Inheritance   $themeInheritance
 	 * @param Shopware_Components_Config              $config
 	 * @param Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter
 	 */
-	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Inheritance $themeInheritance, Shopware_Components_Config $config, Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter)
+	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Enlight_Event_EventManager $eventManager, Inheritance $themeInheritance, Shopware_Components_Config $config, Enlight_Components_Db_Adapter_Pdo_Mysql $dbAdapter)
 	{
-		parent::__construct($modelManager, $templateManager, $themeInheritance);
+		parent::__construct($modelManager, $templateManager, $eventManager, $themeInheritance);
 		$this->config = $config;
 		$this->dbAdapter = $dbAdapter;
 		$this->translator = new Shopware_Components_Translation();

@@ -5,6 +5,7 @@ namespace Shopware\Components\Document;
 use Enlight_Class,
 	Enlight_Hook,
 	Enlight_Template_Manager,
+	Enlight_Event_EventManager,
 	Shopware_Components_Config,
 	Shopware\Components\Model\ModelManager,
 	Shopware\Components\Theme\Inheritance,
@@ -68,6 +69,11 @@ class Base extends Enlight_Class implements Enlight_Hook
 	protected $modelManager;
 
 	/**
+	 * @var Enlight_Event_EventManager
+	 */
+	protected $eventManager;
+
+	/**
 	 * @var Shopware\Components\Model\ModelManager
 	 */
 	protected $themeInheritance;
@@ -77,11 +83,13 @@ class Base extends Enlight_Class implements Enlight_Hook
 	 *
 	 * @param Shopware\Components\Model\ModelManager $modelManager
 	 * @param Enlight_Template_Manager               $templateManager
+	 * @param Enlight_Event_EventManager             $eventManager
 	 * @param Shopware\Components\Theme\Inheritance  $themeInheritance
 	 */
-	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Inheritance $themeInheritance)
+	public function __construct(ModelManager $modelManager, Enlight_Template_Manager $templateManager, Enlight_Event_EventManager $eventManager, Inheritance $themeInheritance)
 	{
 		$this->modelManager = $modelManager;
+		$this->eventManager = $eventManager;
 		$this->themeInheritance = $themeInheritance;
 
 		// Initialize dompdf
