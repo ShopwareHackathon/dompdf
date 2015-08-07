@@ -5,6 +5,7 @@ namespace Shopware\Components\Document;
 use Enlight_Template_Manager,
 	Enlight_Components_Db_Adapter_Pdo_Mysql,
 	Shopware_Components_Config,
+	Enlight_Application,
 	Shopware\Components\Model\ModelManager,
 	Shopware\Components\Theme\Inheritance;
 
@@ -75,9 +76,11 @@ class Factory
 	{
 		switch ($type) {
 			case self::DOCUMENT_COMPONENT_TYPE_BASE:
-				return new Base($this->modelManager, $this->templateManager, $this->themeInheritance);
+				$proxy = Enlight_Application::Instance()->Hooks()->getProxy('Shopware\Components\Document\Base');
+				return new $proxy($this->modelManager, $this->templateManager, $this->themeInheritance);
 			case self::DOCUMENT_COMPONENT_TYPE_ORDER:
-				return new Order($this->modelManager, $this->templateManager, $this->themeInheritance, $this->config, $this->dbAdapter);
+				$proxy = Enlight_Application::Instance()->Hooks()->getProxy('Shopware\Components\Document\Order');
+				return new $proxy($this->modelManager, $this->templateManager, $this->themeInheritance, $this->config, $this->dbAdapter);
 			default:
 				throw Exception();
 		}
