@@ -41,6 +41,7 @@ class Shopware_Controllers_Backend_Document extends Enlight_Controller_Action
             $document = $this->get('document_factory')->createOrderInstance($documentTypeId);
             $documentType = $document->getDocumentType();
             $document->setTemplate('documents/' . $documentType->getTemplate());
+            $document->loadElements();
 
             // TODO: Set the sample data
             $document->setTemplateData(array(
