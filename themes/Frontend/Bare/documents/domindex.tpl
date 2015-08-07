@@ -99,7 +99,12 @@
          color: #fff;
          margin-left: 150px;
          font-size: 12px;
-         line-height: 14px;
+         line-height: 17px;
+      }
+
+      .box-colored p {
+         margin: 0;
+         padding: 0;
       }
 
       .text-docinfo {
@@ -108,7 +113,7 @@
          text-align: left;
          margin-left: 150px;
          font-size: 11px;
-         line-height: 13px;
+         line-height: 15px;
          color: #707070;
       }
 
@@ -126,7 +131,7 @@
 
       .text-invoice-to {
          color: #707070;
-         line-height: 15px;
+         line-height: 20px;
       }
 
       .spacer {
