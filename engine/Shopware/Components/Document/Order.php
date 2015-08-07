@@ -236,14 +236,6 @@ class Order extends Base
 	}
 
 	/**
-	 * @var \DateTime $date
-	 */
-	public function setDate(\DateTime $date)
-	{
-		$this->__set('date', $date);
-	}
-
-	/**
 	 * @var string $documentNumber
 	 */
 	public function setDocumentNumber($documentNumber)

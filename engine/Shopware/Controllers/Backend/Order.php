@@ -1195,14 +1195,11 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
         $deliveryDate = $this->Request()->getParam('deliveryDate', null);
         if (!empty($deliveryDate)) {
             $deliveryDate = new \DateTime($deliveryDate);
-            $deliveryDate = $deliveryDate->format('d.m.Y');
         }
-
 
         $displayDate = $this->Request()->getParam('displayDate', null);
         if (!empty($displayDate)) {
             $displayDate = new \DateTime($displayDate);
-            $displayDate = $displayDate->format('d.m.Y');
         }
 
         // Legacy support
@@ -1216,8 +1213,8 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
                     'netto'                   => (bool) $this->Request()->getParam('taxFree', false),
                     'bid'                     => $this->Request()->getParam('invoiceNumber', null),
                     'voucher'                 => $this->Request()->getParam('voucher', null),
-                    'date'                    => $displayDate,
-                    'delivery_date'           => $deliveryDate,
+                    'date'                    => $displayDate->format('d.m.Y'),
+                    'delivery_date'           => $deliveryDate->format('d.m.Y'),
                     // Don't show shipping costs on delivery note #SW-4303
                     'shippingCostsAsPosition' => (int) $documentTypeId !== 2,
                     '_renderer'               => $renderer,
@@ -1241,6 +1238,10 @@ class Shopware_Controllers_Backend_Order extends Shopware_Controllers_Backend_Ex
             // Don't show shipping costs on delivery note #SW-4303
             $document->setOrder($orderModel);
             $document->setShippingCostsAsPosition($documentTypeId !== 2);
+
+            if (!is_null($displayDate)) {
+                $document->setDocumentDate($displayDate);
+            }
 
             $document->savePDF();
         }
