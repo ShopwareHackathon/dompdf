@@ -382,7 +382,7 @@ class Order extends Base
             $this->setTemplate('documents/' . $this->documentType->getTemplate());
         }
 
-        parent::renderPDF();
+        return parent::renderPDF();
     }
 
 	/**
